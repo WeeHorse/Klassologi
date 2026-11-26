@@ -5,6 +5,7 @@ using Klassologi.Api.Data;
 using Klassologi.Api.Features.Classes;
 using Klassologi.Api.Features.Invitations;
 using Klassologi.Api.Features.PasswordResets;
+using Klassologi.Api.Features.Posts;
 using Klassologi.Api.Features.Status;
 using Microsoft.AspNetCore.Identity;
 using Scalar.AspNetCore;
@@ -68,6 +69,7 @@ builder.Services.AddRateLimiter(o =>
 
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
+builder.Services.AddHostedService<PostPurge>();
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
 
@@ -102,5 +104,6 @@ app.MapAuthEndpoints();
 app.MapClassEndpoints();
 app.MapInvitationEndpoints();
 app.MapPasswordResetEndpoints();
+app.MapPostEndpoints();
 
 app.Run();

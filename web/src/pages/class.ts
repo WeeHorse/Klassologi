@@ -2,6 +2,7 @@ import { html, nothing, render, type TemplateResult } from 'lit-html';
 import { api, problemMessage, type Link, type Member, type Me, type Role } from '../api';
 import { navigate } from '../router';
 import { errorText, page, roleLabel, roles, shareLink, toast } from '../ui';
+import { createBoard } from './board';
 
 /** Klassens vy: min roll, och för lärare och administratörer inbjudan (UC-02), medlemmar, roller (UC-03) och återställning. */
 export async function mountClass(root: HTMLElement, alive: () => boolean, classId: string): Promise<void> {
@@ -34,7 +35,9 @@ export async function mountClass(root: HTMLElement, alive: () => boolean, classI
     if (result.ok) state.members = result.data;
     else state.membersError = problemMessage(result.problem);
   };
-  if (canManage) await loadMembers();
+  const board = createBoard({ classId, me: me.data, myRole: cls.data.myRole, alive, update: () => update() });
+  await Promise.all([board.load(), canManage ? loadMembers() : Promise.resolve()]);
+  if (!alive()) return;
 
   const invite = async () => {
     state.inviteBusy = true;
@@ -74,6 +77,7 @@ export async function mountClass(root: HTMLElement, alive: () => boolean, classI
         cls.data.name,
         html`
           <p class="lead">Din roll: <strong>${cls.data.myRole ? roleLabel(cls.data.myRole) : 'Administratör'}</strong></p>
+          ${board.view()}
           ${canManage ? html`${inviteSection()}${membersSection(me.data)}` : nothing}
         `,
         back,

@@ -110,6 +110,8 @@ Får bara lärare publicera på anslagstavlan, eller även elevrepresentanter oc
 
 **Varför det spelar roll:** Avgör anslagstavlans karaktär (envägsinformation eller diskussion) och behovet av moderering. Krävs för att detaljera UC-08 och UC-11 i MVP.
 
+**Delbeslut (2026-11-26):** Lärare och elevrepresentanter får publicera på anslagstavlan. Vem som får kommentera och reagera (UC-11) är fortfarande öppet och avgörs i steg 5.
+
 ## Q11. Svar när en icke-medlem försöker nå en klass
 
 **Status:** Besvarad (2026-11-26)
@@ -140,6 +142,8 @@ Servern använder MySQL:s standard `utf8mb4_0900_ai_ci`, som behandlar å och ä
 Vad får en elevrepresentant göra utöver en elev? Till exempel publicera på anslagstavlan ([Q10](#q10-vem-får-publicera-och-kommentera-på-anslagstavlan)), moderera eller ta emot frågor från klassen (UC-17).
 
 **Varför det spelar roll:** Rollen finns i datamodellen men har ännu inga egna rättigheter. Krävs för att detaljera UC-08 och UC-17.
+
+**Delbeslut (2026-11-26):** Elevrepresentanter får publicera på anslagstavlan ([Q10](#q10-vem-får-publicera-och-kommentera-på-anslagstavlan)). Övriga behörigheter, t.ex. moderering och att ta emot frågor (UC-17), är fortfarande öppna.
 
 ## Q14. Hur når inbjudan och återställning av lösenord användaren?
 
