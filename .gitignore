@@ -1,1 +1,72 @@
+# --- OS ---
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editorer ---
+.vs/
+.idea/
+*.swp
+*.user
+*.suo
+*.userprefs
+# VS Code: dela bara gemensamma inställningar
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# --- Claude Code: personliga inställningar ---
+.claude/settings.local.json
+
+# --- Hemligheter och lokal konfiguration ---
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+*.pfx
+*.pem
+*.key
+
+# --- .NET ---
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.nupkg
+*.snupkg
+TestResults/
+*.trx
+coverage*.json
+coverage*.xml
+*.coverage
+.dotnet/
+
+# --- Node / TypeScript / Vite ---
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+.vite/
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Test: Vitest, Playwright, Newman ---
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+newman/
+
+# --- Capacitor (när mobilskalen läggs till) ---
+android/app/build/
+android/.gradle/
+android/local.properties
+ios/App/Pods/
+ios/App/App/public/
+ios/DerivedData/
