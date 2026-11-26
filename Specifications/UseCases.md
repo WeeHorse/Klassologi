@@ -122,8 +122,8 @@ Kolumnen *Frågor* anger öppna frågor som måste besvaras innan use caset kan 
 |------|--------|----------|--------|
 | 1 | `feature/walking-skeleton` | Hela kedjan utan affärsfunktioner: API, migreringar, webbapp och alla testverktyg | Klart |
 | 2 | `feature/class-membership` | UC-01, UC-03, läsning av klasser och klassavgränsning. Användare finns som tabell men skapas direkt i databasen. | Klart |
-| 3a | `feature/authentication` | Backend för UC-02 (enkel variant), UC-04, UC-05, återställning av lösenord, medlemslista och kommandot för administratörer ([Q2](Questions.md#q2-användarnas-ålder-och-inloggning)) | Pågår |
-| 3b | `feature/authentication-ui` | Gränssnitt för steg 3: Logga in, Aktivera konto, Startsida, Klass | – |
+| 3a | `feature/authentication` | Backend för UC-02 (enkel variant), UC-04, UC-05, återställning av lösenord, medlemslista och kommandot för administratörer ([Q2](Questions.md#q2-användarnas-ålder-och-inloggning)) | Klart (PR) |
+| 3b | `feature/authentication-ui` | Gränssnitt för steg 3: Logga in, Aktivera konto, Välj nytt lösenord, Mina klasser, Klass | Pågår |
 | 4 | `feature/notice-board` | UC-08–10. Beror på Q10 och Q13. | – |
 | 5 | – | UC-02 (resten), UC-06, UC-07, UC-11, UC-12 | – |
 
@@ -326,7 +326,10 @@ Kommandot `dotnet run --project src/Klassologi.Api -- create-admin-invitation` s
 | Logga in | E-post, lösenord (med "visa"), knapp. Felmeddelanden enligt UC-05. |
 | Aktivera konto | Klass och roll, formulär enligt UC-04, eller "Gå med i klassen" om användaren är inloggad. |
 | Startsida | Mina klasser, Logga ut. Administratörer har dessutom "Skapa klass". |
-| Klass | Klassens namn och min roll. För lärare och administratörer: "Bjud in" med rollval och en länk att kopiera. |
+| Klass | Klassens namn och min roll. För lärare och administratörer: "Bjud in" med rollval och en länk att kopiera, samt medlemslistan med rollval och "Återställ lösenord". |
+| Välj nytt lösenord | Nytt lösenord (med "visa"), knapp. Öppnas via länken för återställning. |
+
+**Adresser:** `/logga-in`, `/aktivera#<token>`, `/aterstall#<token>`, `/` (Mina klasser), `/klasser/<id>` och `/status`.
 
 **Utanför steg 3:** e-post, att själv byta lösenord (UC-06), tvåfaktorsautentisering, medlemslista och profiler (UC-07), att ta bort medlemmar.
 
