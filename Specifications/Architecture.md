@@ -16,6 +16,7 @@ flowchart TB
     elev([Elev])
     larare([Lärare])
     rep([Elevrepresentant])
+    admin([Administratör])
 
     klassologi["Klassologi<br/>Samlar klassens information och kommunikation"]
 
@@ -24,10 +25,11 @@ flowchart TB
     elev --> klassologi
     larare --> klassologi
     rep --> klassologi
+    admin --> klassologi
     klassologi -- inloggning --> idp
 ```
 
-Rollerna är preliminära tills [Q5](Questions.md#q5-roller-och-behörigheter) är besvarad. Externa parter (företag, lärosäten) är inte med, eftersom [Q6](Questions.md#q6-externa-parter) är öppen.
+Elev, lärare och elevrepresentant är roller per klass, och administratör är en egenskap hos användaren ([Q5](Questions.md#q5-roller-och-behörigheter)). Elevrepresentantens extra behörigheter är inte avgjorda ([Q13](Questions.md#q13-elevrepresentantens-behörigheter)). Externa parter (företag, lärosäten) är inte med, eftersom [Q6](Questions.md#q6-externa-parter) är öppen.
 
 ## Containrar
 
@@ -45,7 +47,7 @@ flowchart TB
     end
 
     subgraph backend[Backend]
-        api["Klassologi.Api<br/>.NET Minimal API<br/>Features: Classes, Users, Posts"]
+        api["Klassologi.Api<br/>.NET Minimal API<br/>Features: Status, Classes<br/>(Users, Posts planerade)"]
         rt["SignalR<br/>(förslag, lager 4)"]
     end
 
@@ -58,8 +60,8 @@ flowchart TB
     cap -. bäddar in .-> web
     web -- HTTPS/JSON --> api
     web -. websocket .-> rt
-    web -- inloggning --> auth
-    api -- validerar token --> auth
+    web -. inloggning, steg 3 .-> auth
+    api -. validerar token, steg 3 .-> auth
     api -- SQL --> db
     api -.-> s3
 ```
@@ -87,17 +89,20 @@ sequenceDiagram
     participant M as Medlemskapskontroll
     participant D as MySQL
 
-    W->>E: GET /classes/{id}/posts (token)
-    E->>M: Verifiera användare och klass-id
-    M->>D: SELECT medlemskap
-    alt Inte medlem
+    W->>E: GET /api/classes/{id}/... (token)
+    E->>M: ClassAccess.CheckAsync(klass-id, användar-id)
+    M->>D: SELECT klass finns, roll, administratör
+    alt Klassen finns inte
+        M-->>E: Finns inte
+        E-->>W: 404
+    else Inte medlem och inte administratör
         M-->>E: Nekad
-        E-->>W: 403 eller 404
-    else Medlem
-        M-->>E: Verifierat klass-id och roll
+        E-->>W: 403
+    else Medlem eller administratör
+        M-->>E: Roll och administratörsstatus
         E->>D: SELECT ... WHERE ClassId = @verifieratId
-        E-->>W: 200 inlägg
+        E-->>W: 200
     end
 ```
 
-Om en icke-medlem ska få 403 eller 404 är inte beslutat ([Q11](Questions.md#q11-svar-när-en-icke-medlem-försöker-nå-en-klass)). Med 404 avslöjas inte att klassen finns. Det avgörs när UC-09 detaljeras.
+En icke-medlem får 403 och en klass som inte finns ger 404 ([Q11](Questions.md#q11-svar-när-en-icke-medlem-försöker-nå-en-klass)). Kontrollen är implementerad i `Features/Classes/ClassAccess.cs`, och regler om roller inom klassen (t.ex. att bara lärare får ändra roller) avgörs med samma resultat.

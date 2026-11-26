@@ -4,7 +4,7 @@ Use cases uttryckta, detaljerade och prioriterade utifrån [Functionality](Funct
 
 ## Bruttolista
 
-**Status:** Förslag, ej beslutat. Prioriteringen hänger ihop med [Q8](Questions.md#q8-prioritering-och-omfattning-av-första-versionen).
+**Status:** Lager 1–3 är beslutade som MVP ([Q8](Questions.md#q8-prioritering-och-omfattning-av-första-versionen)). Lager 4 och senare är ordnade efter beroende och värde men inte inbördes beslutade.
 
 ### Prioriteringsprincip
 
@@ -16,7 +16,7 @@ Listan är ordnad i lager efter beroenden, enligt principen för en minsta anvä
 
 Lager 1–3 utgör den föreslagna MVP:n: en klass där användare loggar in och där information publiceras och läses på ett ställe. Det är den minsta helhet som uppfyller applikationens kärnsyfte, att samla klassens information och förkorta kommunikationsvägarna. Senare lager bygger vidare på samma grund.
 
-Aktörerna är preliminära tills rollerna är fastställda ([Q5](Questions.md#q5-roller-och-behörigheter)).
+Roller gäller per klass enligt [Q5](Questions.md#q5-roller-och-behörigheter). Elevrepresentantens extra behörigheter är inte avgjorda ([Q13](Questions.md#q13-elevrepresentantens-behörigheter)), så aktörer som rör den rollen är preliminära.
 
 Kolumnen *Frågor* anger öppna frågor som måste besvaras innan use caset kan detaljeras.
 
@@ -24,9 +24,9 @@ Kolumnen *Frågor* anger öppna frågor som måste besvaras innan use caset kan 
 
 | ID | Use case | Primär aktör | Mål | Beror på | Frågor |
 |----|----------|--------------|-----|----------|--------|
-| UC-01 | Skapa klass | Administratör/lärare | Upprätta en klass som användare kan höra till | – | Q3, Q5 |
-| UC-02 | Bjuda in användare till klass | Administratör/lärare | Ge elever och lärare tillgång till klassen | UC-01 | Q2, Q3 |
-| UC-03 | Tilldela och ändra roll | Administratör/lärare | Ge användare rätt behörigheter (elev, lärare, elevrepresentant) | UC-02 | Q5 |
+| UC-01 | [Skapa klass](#uc-01-skapa-klass) | Administratör | Upprätta en klass som användare kan höra till | – | – |
+| UC-02 | Bjuda in användare till klass | Lärare i klassen, administratör | Ge elever och lärare tillgång till klassen | UC-01 | Q2 |
+| UC-03 | [Tilldela och ändra roll](#uc-03-tilldela-och-ändra-roll) | Lärare i klassen, administratör | Ge användare rätt behörigheter (elev, lärare, elevrepresentant) | UC-01 | – |
 
 ### Lager 2 – Användare (MVP)
 
@@ -41,15 +41,15 @@ Kolumnen *Frågor* anger öppna frågor som måste besvaras innan use caset kan 
 
 | ID | Use case | Primär aktör | Mål | Beror på | Frågor |
 |----|----------|--------------|-----|----------|--------|
-| UC-08 | Publicera inlägg på anslagstavlan | Lärare (ev. elevrepresentant) | Nå hela klassen med information | UC-05 | Q5, Q10 |
+| UC-08 | Publicera inlägg på anslagstavlan | Lärare (ev. elevrepresentant) | Nå hela klassen med information | UC-05 | Q10, Q13 |
 | UC-09 | Läsa anslagstavlan | Alla användare | Hitta aktuell information på ett ställe | UC-08 | – |
 | UC-10 | Redigera och ta bort eget inlägg | Inläggets författare | Hålla informationen korrekt | UC-08 | – |
 | UC-11 | Kommentera och reagera på inlägg | Alla användare | Ställa följdfrågor och visa att man tagit del | UC-09 | Q10 |
-| UC-12 | Moderera inlägg och kommentarer | Lärare/administratör | Upprätthålla god ton och gemensamma regler | UC-11 | Q5 |
+| UC-12 | Moderera inlägg och kommentarer | Lärare/administratör | Upprätthålla god ton och gemensamma regler | UC-11 | Q13 |
 
 ---
 
-*Gräns för föreslagen MVP. Lagren nedan är ordnade efter beroende och värde men inte inbördes beslutade.*
+*Gräns för MVP:n. Lagren nedan är ordnade efter beroende och värde men inte inbördes beslutade.*
 
 ---
 
@@ -113,3 +113,98 @@ Kolumnen *Frågor* anger öppna frågor som måste besvaras innan use caset kan 
 | UC-41 | Samverka med företag och lärosäten | Lärare, elev, extern part | Q6 |
 | UC-42 | Kategorisera elever | Lärare | Q9 |
 | UC-43 | Lägga till tillägg och anpassa funktionalitet | Alla användare | – |
+
+## Byggordning för MVP
+
+**Beslutat (2026-11-26).** Lagren beskriver beroenden mellan funktioner. Byggordningen tar dessutom hänsyn till risk: det som bär säkerheten byggs och testas först. Varje steg är en egen feature-branch.
+
+| Steg | Branch | Innehåll | Status |
+|------|--------|----------|--------|
+| 1 | `feature/walking-skeleton` | Hela kedjan utan affärsfunktioner: API, migreringar, webbapp och alla testverktyg | Klart |
+| 2 | `feature/class-membership` | UC-01, UC-03, läsning av klasser och klassavgränsning. Användare finns som tabell men skapas direkt i databasen. | Pågår |
+| 3 | `feature/authentication` | UC-04, UC-05: riktig inloggning. Beror på Q2. | – |
+| 4 | `feature/notice-board` | UC-08–10. Beror på Q10 och Q13. | – |
+| 5 | – | UC-02, UC-06, UC-07, UC-11, UC-12 | – |
+
+Klasser och medlemskap byggs före inloggningen trots att lager 1 och 2 i listan har motsatt ordning. Klassavgränsningen är systemets viktigaste säkerhetsegenskap och kan testas utan riktig inloggning, eftersom testerna använder ett eget autentiseringsschema.
+
+## Detaljerade use cases
+
+Gemensamt för alla endpoints nedan:
+
+- **Ej inloggad:** svar 401.
+  *Känd avvikelse (2026-11-26), åtgärdas i steg 3:* Ett anonymt anrop med ogiltig body (t.ex. trasig JSON eller okänd roll) får i dag 400 i stället för 401, eftersom bodyn läses in innan inloggningen kontrolleras.
+- **Klassen finns inte:** svar 404.
+- **Inloggad men inte medlem i klassen och inte administratör:** svar 403 ([Q11](Questions.md#q11-svar-när-en-icke-medlem-försöker-nå-en-klass)).
+- **Behörighet** avgörs från användarens medlemskap och administratörsstatus i databasen, aldrig från uppgifter som klienten skickar.
+- **Roller** gäller per klass: `Student` (elev), `Teacher` (lärare) och `StudentRepresentative` (elevrepresentant). Administratör är en egenskap hos användaren, inte en roll i klassen ([Q5](Questions.md#q5-roller-och-behörigheter)).
+
+### UC-01 Skapa klass
+
+**Status:** Beslutat (2026-11-26)
+
+| | |
+|---|---|
+| **Aktör** | Administratör |
+| **Mål** | Upprätta en klass med en första lärare |
+| **Förutsättningar** | Aktören är inloggad och administratör. Den utsedda läraren finns som användare. |
+
+**Huvudflöde:**
+
+1. Administratören anger klassens namn och vem som ska vara första lärare.
+2. Systemet kontrollerar uppgifterna.
+3. Systemet skapar klassen och gör den utsedda användaren till medlem med rollen lärare.
+4. Systemet svarar med klassens id (201).
+
+**Alternativa flöden:**
+
+- **A1. Aktören är inte administratör:** 403. Ingen klass skapas.
+- **A2. Ogiltigt namn:** tomt, bara blanksteg eller längre än 100 tecken efter att blanksteg i början och slutet tagits bort. Svar 400 med beskrivning av felet.
+- **A3. Den utsedda läraren finns inte:** 400 med beskrivning av felet.
+
+**Efterhand:** Klassen finns och har exakt en medlem, läraren. Det framgår vem som skapade klassen och när.
+
+**Regler:**
+
+- Klassnamn behöver inte vara unika, eftersom till exempel "9A" kan återkomma år efter år.
+- Klassnamn sparas med svensk collation ([Q12](Questions.md#q12-collation-för-svensk-text)).
+
+### UC-03 Tilldela och ändra roll
+
+**Status:** Beslutat (2026-11-26)
+
+| | |
+|---|---|
+| **Aktör** | Lärare i klassen, administratör |
+| **Mål** | Ge en användare rätt roll i klassen |
+| **Förutsättningar** | Klassen och användaren finns. |
+
+Tills inbjudningar finns (UC-02) lägger samma åtgärd också till användaren i klassen om användaren inte redan är medlem.
+
+**Huvudflöde:**
+
+1. Aktören anger användare och roll.
+2. Systemet kontrollerar att aktören är lärare i klassen eller administratör.
+3. Systemet sätter rollen och lägger till användaren som medlem om det behövs (204).
+
+**Alternativa flöden:**
+
+- **A1. Aktören är medlem men inte lärare**, t.ex. elev eller elevrepresentant: 403.
+- **A2. Aktören är lärare i en annan klass men inte i den här:** 403.
+- **A3. Ogiltig roll:** 400. Rollnamn tolkas utan hänsyn till skiftläge (`student` blir `Student`), men andra värden, även siffror, är ogiltiga.
+- **A4. Användaren finns inte:** 404 med beskrivning av felet.
+- **A5. Ändringen skulle lämna klassen utan lärare:** 409. Rollen ändras inte.
+
+**Efterhand:** Användaren är medlem i klassen med den angivna rollen.
+
+**Regler:**
+
+- **En klass har alltid minst en lärare.** Kontrollen och ändringen görs i samma transaktion, så att två samtidiga ändringar inte kan lämna klassen utan lärare.
+- Att ta bort medlemmar ingår inte här.
+
+### Läsa klasser
+
+Stöd för UC-03 och senare use cases, och den grund som klassavgränsningen testas mot.
+
+- **Mina klasser:** en inloggad användare ser de klasser användaren är medlem i, med sin roll, sorterade på namn i svensk ordning.
+- **En klass:** medlemmar och administratörer ser klassens id och namn och sin egen roll. Administratören har ingen roll om den inte också är medlem.

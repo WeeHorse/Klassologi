@@ -53,6 +53,8 @@ dotnet run --project src/Klassologi.Api
 
 Migreringarna i `src/Klassologi.Api/Data/Migrations/` körs automatiskt när API:t startar. `GET /api/status` visar att API:t når databasen.
 
+Endpoints under `/api/classes` kräver inloggning, som läggs till i steg 3. Tills dess svarar de 401 och används bara via integrationstesterna, som har ett eget autentiseringsschema. Se [UseCases.md](Specifications/UseCases.md#byggordning-för-mvp).
+
 ### 3. Webbapp
 
 ```sh

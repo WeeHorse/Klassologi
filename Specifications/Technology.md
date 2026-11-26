@@ -34,7 +34,7 @@ Principer:
 - **Endpoints anropar logik direkt.** Minimal API-endpoints anropar vanliga metoder som läser och skriver med explicit SQL via Dapper. Ingen mediator, inga kommandobussar.
 - **Inga abstraktioner i förväg.** Inga generiska repositories, inga interfaces med en enda implementation och inga separata lagerprojekt (Domain/Application/Infrastructure) förrän ett konkret behov uppstår.
 - **Affärsregler i vanlig kod där de hör hemma.** Regler som rör roller, anonymitet, moderering och klassavgränsning ska vara samlade, läsbara och enhetstestbara.
-- **Behörighet explicit i backend.** ASP.NET Core:s behörighetspolicies plus kontroller i koden.
+- **Behörighet explicit i backend.** Behörighet avgörs i vanlig kod mot databasen, samlad per område. Åtkomst till en klass avgörs bara i `Features/Classes/ClassAccess.cs`. ASP.NET Core:s autentisering används för att veta vem användaren är (från steg 3). Behörighetspolicies införs bara om de förenklar koden.
 
 Grundstruktur (etablerad i walking skeleton, 2026-11-26):
 
@@ -47,7 +47,8 @@ src/
     Program.cs
     Data/            anslutning (Db), migreringar (DbUp)
       Migrations/    numrerade SQL-skript, t.ex. 0001_database_defaults.sql
-    Features/        ett funktionsområde per katalog, t.ex. Status/, senare Classes/, Users/, Posts/
+    Auth/            den inloggade användarens id (CurrentUser)
+    Features/        ett funktionsområde per katalog: Status/, Classes/, senare Users/, Posts/
 tests/
   Klassologi.Api.Tests/
 web/                 frontend (Vite, lit-html)
@@ -136,7 +137,8 @@ web/                 frontend (Vite, lit-html)
 MySQL saknar radnivåskydd (RLS) och har några standardbeteenden som påverkar säkerhet och dataintegritet. Följande gäller:
 
 - **Teckenkodning:** `utf8mb4` överallt.
-- **Collation:** uttrycklig collation på identitetskolumner; jämför på normaliserade fält (t.ex. `NormalizedEmail`, `NormalizedUserName`) så att skillnader i skiftläge och accenter inte ger dubbletter eller kollisioner.
+- **Collation (beslutat 2026-11-26, [Q12](Questions.md#q12-collation-för-svensk-text)):** databasens standard är `utf8mb4_sv_0900_ai_ci`, så att å, ä och ö är egna bokstäver och sorteras efter z. Id-kolumner och andra tekniska värden (t.ex. roller) använder `ascii_bin`. Inloggningsuppgifter jämförs på normaliserade fält (t.ex. `NormalizedEmail`) så att skillnader i skiftläge och accenter inte ger dubbletter eller kollisioner.
+- **Id:n:** UUID v7 som `CHAR(36)`, så att antal och ordning inte kan utläsas ur id:n i URL:er.
 - **Strikt läge:** `STRICT_TRANS_TABLES` påslaget, så att för långa värden ger fel i stället för att avkortas.
 - **Tid:** `DATETIME(6)` och alltid UTC.
 - **Klassavgränsning:** upprätthålls i koden och verifieras med automatiska tester (se Dataåtkomst ovan).
