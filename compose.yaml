@@ -1,0 +1,33 @@
+# Lokal utvecklingsmiljö. Se README.md för användning.
+# Inställningarna speglar Specifications/Technology.md (Databas: MySQL – säkerhetsåtgärder).
+
+services:
+  mysql:
+    image: mysql:9.7
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Sätt MYSQL_ROOT_PASSWORD i .env (se .env.example)}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-klassologi}
+      MYSQL_USER: ${MYSQL_USER:-klassologi}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Sätt MYSQL_PASSWORD i .env (se .env.example)}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --sql-mode=STRICT_TRANS_TABLES,ONLY_FULL_GROUP_BY,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+      - --default-time-zone=+00:00
+      - --skip-name-resolve
+    ports:
+      # Bara åtkomlig från den egna datorn.
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysqladmin ping -h 127.0.0.1 -u root --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  mysql-data:

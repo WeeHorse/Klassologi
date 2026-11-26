@@ -10,7 +10,8 @@ Status per val: **Beslutat** | **Förslag** (ej beslutat) | **Att verifiera**
 |-----|-----|--------|
 | Backend | C# / .NET (LTS-version), ASP.NET Core Minimal API | Beslutat |
 | Arkitektur | Tunn, imperativ, organiserad per funktion (se nedan) | Beslutat |
-| Databas | MySQL 8 (LTS-version) | Beslutat |
+| Databas | MySQL, aktuell LTS-version (9.7) | Beslutat |
+| Lokal databas | MySQL i Docker via Docker Compose (se nedan) | Beslutat |
 | Dataåtkomst | Dapper + MySqlConnector, ingen EF Core (se nedan) | Beslutat |
 | Migreringar | Versionerade SQL-skript, t.ex. med DbUp | Förslag |
 | Realtid | SignalR | Förslag – behövs från lager 4 (kommunikation) |
@@ -126,6 +127,19 @@ MySQL saknar radnivåskydd (RLS) och har några standardbeteenden som påverkar 
 - **Tid:** `DATETIME(6)` och alltid UTC.
 - **Klassavgränsning:** upprätthålls i koden och verifieras med automatiska tester (se Dataåtkomst ovan).
 - **Migreringar:** små migreringar och backup före driftsättning, eftersom MySQL inte kan rulla tillbaka schemaändringar i en transaktion.
+- **Krypterad anslutning:** API:t ansluter med TLS (`SslMode=Required` i MySqlConnector). MySQL 9 saknar det äldre lösenordsinsticksprogrammet `mysql_native_password` och använder `caching_sha2_password`, som kräver TLS eller utbyte av publik nyckel.
+
+**Version (beslutat 2026-11-26):** MySQL 9.7 LTS, släppt 2026-04-21 som efterföljare till 8.4 LTS.
+
+### Lokal databas
+
+**Beslutat (2026-11-26):** Under utveckling körs MySQL lokalt i Docker via `compose.yaml` i repots rot. Användning beskrivs i [README](../README.md).
+
+- Samma inställningar som ovan sätts redan lokalt: `utf8mb4`, uttrycklig collation, strikt läge och UTC.
+- Porten binds bara till `127.0.0.1`.
+- Lösenord läses från `.env`, som inte versionshanteras. Mallen `.env.example` innehåller bara platshållare.
+- Datat ligger i en Docker-volym och kan återställas med `docker compose down -v`.
+- Den lokala databasen är för utveckling. xUnit-integrationstesterna startar egna databaser med Testcontainers.
 
 ## Att verifiera
 
