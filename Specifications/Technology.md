@@ -15,10 +15,11 @@ Status per val: **Beslutat** | **Förslag** (ej beslutat) | **Att verifiera**
 | Dataåtkomst | Dapper + MySqlConnector, ingen EF Core (se nedan) | Beslutat |
 | Migreringar | Versionerade SQL-skript med DbUp (se nedan) | Beslutat |
 | Realtid | SignalR | Förslag – behövs från lager 4 (kommunikation) |
-| Kontrakt mot klient | OpenAPI, genererad TypeScript-klient | Förslag |
+| Kontrakt mot klient | OpenAPI-dokument (`Microsoft.AspNetCore.OpenApi`) och Scalar som testgränssnitt, bara under utveckling | Beslutat |
+| Klient mot API | Genererad TypeScript-klient från OpenAPI | Förslag – avgörs i steg 3b |
 | Klient | TypeScript + Vite + lit-html, webb först (se nedan) | Beslutat |
 | Mobilapp | Capacitor-skal kring webbappen, när appen ska ut i appbutikerna | Beslutat |
-| Autentisering | Etablerad lösning med OIDC-stöd (t.ex. ASP.NET Core Identity, OpenIddict, Keycloak) | Förslag – beror på [Q2](Questions.md#q2-användarnas-ålder-och-inloggning) |
+| Autentisering | ASP.NET Core Identity med egen lagring via Dapper, konton bara genom inbjudan (se nedan) | Beslutat |
 | Filer | S3-kompatibel objektlagring | Förslag |
 | Video/röst | LiveKit | Förslag – senare |
 | Drift | EU-baserad hosting | Förslag |
@@ -47,8 +48,8 @@ src/
     Program.cs
     Data/            anslutning (Db), migreringar (DbUp)
       Migrations/    numrerade SQL-skript, t.ex. 0001_database_defaults.sql
-    Auth/            den inloggade användarens id (CurrentUser)
-    Features/        ett funktionsområde per katalog: Status/, Classes/, senare Users/, Posts/
+    Auth/            Identity: lagring, inloggning, engångslänkar, kontoregler
+    Features/        ett funktionsområde per katalog: Status/, Classes/, Invitations/, PasswordResets/, senare Posts/
 tests/
   Klassologi.Api.Tests/
 web/                 frontend (Vite, lit-html)
@@ -92,7 +93,7 @@ web/                 frontend (Vite, lit-html)
 - SQL skrivs explicit och syns i koden. Inget dolt beteende från en ORM.
 - Migreringar hanteras med versionerade SQL-skript i stället för EF Core-migreringar.
 - Det finns inga globala query-filter. Klassavgränsningen måste därför upprätthållas i koden (se nedan).
-- Användarhantering kan inte bygga på ASP.NET Core Identitys färdiga EF Core-lagring. Det påverkar valet av autentiseringslösning ([Q2](Questions.md#q2-användarnas-ålder-och-inloggning)): antingen en extern identitetstjänst (t.ex. Keycloak) eller Identity med egen lagring via Dapper.
+- Användarhantering kan inte bygga på ASP.NET Core Identitys färdiga EF Core-lagring. Vi skriver därför egen lagring för Identity med Dapper (se [Autentisering](#autentisering)).
 
 **Klassavgränsning utan query-filter:**
 
@@ -132,6 +133,25 @@ web/                 frontend (Vite, lit-html)
 - **TypeScript 6.0**, inte 7.0, eftersom typescript-eslint ännu inte stöder TypeScript 7.
 - **`Microsoft.AspNetCore.Mvc.Testing` 10.0.x**, i takt med .NET 10 LTS.
 
+## Autentisering
+
+**Beslutat (2026-11-26, [Q2](Questions.md#q2-användarnas-ålder-och-inloggning)):** Egna konton med ASP.NET Core Identity. Användarna är vuxna, och konton skapas bara genom inbjudan till en klass.
+
+- **Identity sköter det säkerhetskritiska:** hashning av lösenord, säkerhetsstämplar, utelåsning efter misslyckade försök och tokens. Vi skriver bara lagringen (`IUserStore` med flera) med Dapper mot tabellen `users`. Ingen egen kryptografi.
+- **Ingen öppen registrering.** Identitys färdiga endpoints (`MapIdentityApi`) används inte, eftersom de innehåller öppen registrering.
+- **SSO** (t.ex. Skolfederation) ingår inte i MVP:n. Det kan läggas till senare som extern inloggning i Identity.
+- **Implementation (steg 3a):**
+  - `Auth/UserStore.cs` implementerar lagringen för Identity med Dapper.
+  - Identity lägger användarens id i claimet `sub`, som `Auth/CurrentUser.cs` läser.
+  - Säkerhetsstämpeln kontrolleras vid varje anrop, så att utloggning och nytt lösenord gäller alla sessioner direkt. Det kostar en databasfråga per anrop.
+  - Endpoints som kräver inloggning använder `RequireAuthorization`, så 401 kommer före inläsning av bodyn.
+- **Anropstakt:** inloggning, aktivering och återställning är begränsade till 20 anrop per minut och IP-adress (`Auth:RateLimitPerMinute`).
+
+**API-dokumentation (beslutat 2026-11-26):** Under utveckling publicerar API:t sitt OpenAPI-dokument på `/openapi/v1.json` och ett testgränssnitt (Scalar) på `/scalar`. Båda finns bara i miljön `Development`, och ett test verifierar att de inte exponeras i drift. Scalar är fäst vid en version som har funnits i minst två veckor (2.21.0).
+- **Session (beslutat, [Q16](Questions.md#q16-session-cookie-eller-token)):** cookie med `HttpOnly`, `Secure` och `SameSite=Strict`. Webbappen och API:t har samma ursprung. Inloggning med token läggs till när Capacitor-appen kommer.
+- **Länkar för inbjudan och återställning (beslutat, [Q14](Questions.md#q14-hur-når-inbjudan-och-återställning-av-lösenord-användaren)):** engångslänkar som visas för den som bjuder in, och den personen delar dem själv. Ingen e-post i MVP:n.
+- **Första administratören (beslutat, [Q15](Questions.md#q15-hur-skapas-den-första-administratören)):** ett kommando i API:t skriver ut en engångslänk för inbjudan av en administratör (`create-admin-invitation`). Länkens adress byggs från `App:PublicBaseUrl`, som är `http://localhost:5173` lokalt.
+
 ## Databas: MySQL – säkerhetsåtgärder
 
 MySQL saknar radnivåskydd (RLS) och har några standardbeteenden som påverkar säkerhet och dataintegritet. Följande gäller:
@@ -160,4 +180,5 @@ MySQL saknar radnivåskydd (RLS) och har några standardbeteenden som påverkar 
 ## Att verifiera
 
 - **Notisåtgärder i Capacitor:** att snabbsvar och reaktioner direkt från notisen och låsskärmen går att göra med befintliga plugins på både iOS och Android, eller vad som kräver egen native-kod. Behövs först för lager 8 (notiser).
-- **SAML-stöd** om inloggning via skolans federation krävs ([Q2](Questions.md#q2-användarnas-ålder-och-inloggning)).
+- **Klientens IP-adress i drift:** bakom en omvänd proxy måste `ForwardedHeaders` konfigureras. Annars delar alla klienter samma gräns för anropstakt. Avgörs när driften designas.
+- **SAML-stöd** om inloggning via skolans federation blir aktuellt efter MVP:n ([Q2](Questions.md#q2-användarnas-ålder-och-inloggning)).

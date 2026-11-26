@@ -1,6 +1,7 @@
 using Dapper;
 using Klassologi.Api.Auth;
 using Klassologi.Api.Data;
+using Klassologi.Api.Features.Invitations;
 
 namespace Klassologi.Api.Features.Classes;
 
@@ -11,14 +12,18 @@ public static class ClassEndpoints
 
     public static void MapClassEndpoints(this WebApplication app)
     {
-        var classes = app.MapGroup("/api/classes");
+        // RequireAuthorization ger 401 innan bodyn läses in.
+        var classes = app.MapGroup("/api/classes").RequireAuthorization();
         classes.MapPost("/", CreateClass);
         classes.MapGet("/", GetMyClasses);
         classes.MapGet("/{classId:guid}", GetClass);
+        classes.MapGet("/{classId:guid}/members", GetMembers);
         classes.MapPut("/{classId:guid}/members/{userId:guid}", SetMemberRole);
     }
 
-    public sealed record CreateClassRequest(string? Name, Guid FirstTeacherUserId);
+    public sealed record CreateClassRequest(string? Name);
+    public sealed record CreatedClassResponse(Guid Id, string Name, OneTimeLinks.Link TeacherInvitation);
+    public sealed record MemberResponse(Guid UserId, string DisplayName, ClassRole Role);
     public sealed record SetMemberRoleRequest(ClassRole Role);
     public sealed record ClassResponse(Guid Id, string Name, ClassRole? MyRole);
 
@@ -39,25 +44,17 @@ public static class ClassEndpoints
                 ["name"] = [$"Klassens namn måste vara 1–{MaxNameLength} tecken."],
             });
 
+        // Klassen skapas utan medlemmar. Den första läraren kommer in via inbjudan.
         await using var transaction = await connection.BeginTransactionAsync(ct);
-        var teacherExists = await connection.ExecuteScalarAsync<bool>(
-            "SELECT EXISTS (SELECT 1 FROM users WHERE Id = @id)", new { id = request.FirstTeacherUserId }, transaction);
-        if (!teacherExists)
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["firstTeacherUserId"] = ["Den utsedda läraren finns inte."],
-            });
-
         var classId = Guid.CreateVersion7();
         await connection.ExecuteAsync(
-            """
-            INSERT INTO classes (Id, Name, CreatedBy) VALUES (@classId, @name, @actorId);
-            INSERT INTO class_memberships (ClassId, UserId, Role) VALUES (@classId, @teacherId, 'Teacher');
-            """,
-            new { classId, name, actorId, teacherId = request.FirstTeacherUserId }, transaction);
+            "INSERT INTO classes (Id, Name, CreatedBy) VALUES (@classId, @name, @actorId)",
+            new { classId, name, actorId }, transaction);
+        var invitation = await Invitations.Invitations.CreateClassInvitationAsync(
+            connection, transaction, classId, ClassRole.Teacher, actorId);
         await transaction.CommitAsync(ct);
 
-        return Results.Created($"/api/classes/{classId}", new ClassResponse(classId, name, ClassRole.Teacher));
+        return Results.Created($"/api/classes/{classId}", new CreatedClassResponse(classId, name, invitation));
     }
 
     static async Task<IResult> GetMyClasses(HttpContext http, Db db, CancellationToken ct)
@@ -89,6 +86,26 @@ public static class ClassEndpoints
         var name = await connection.ExecuteScalarAsync<string>(
             "SELECT Name FROM classes WHERE Id = @classId", new { classId });
         return Results.Ok(new ClassResponse(classId, name!, access.Role));
+    }
+
+    static async Task<IResult> GetMembers(Guid classId, HttpContext http, Db db, CancellationToken ct)
+    {
+        if (CurrentUser.Id(http.User) is not { } userId) return Results.Unauthorized();
+
+        await using var connection = await db.OpenAsync(ct);
+        var access = await ClassAccess.CheckAsync(connection, classId, userId);
+        if (access.Deny(access.CanManageMembers) is { } denied) return denied;
+
+        var rows = await connection.QueryAsync<(Guid UserId, string DisplayName, string Role)>(
+            """
+            SELECT u.Id, u.DisplayName, m.Role
+            FROM class_memberships m
+            JOIN users u ON u.Id = m.UserId
+            WHERE m.ClassId = @classId
+            ORDER BY u.DisplayName, u.Id
+            """,
+            new { classId });
+        return Results.Ok(rows.Select(r => new MemberResponse(r.UserId, r.DisplayName, Enum.Parse<ClassRole>(r.Role))));
     }
 
     // UC-03

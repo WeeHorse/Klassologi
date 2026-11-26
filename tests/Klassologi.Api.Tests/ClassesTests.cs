@@ -15,15 +15,7 @@ public sealed class ClassesTests(ApiFixture api)
 
     // ---------- Hjälpmetoder ----------
 
-    async Task<(Guid ClassId, Guid TeacherId)> CreateClassAsync(string name = "9A")
-    {
-        var admin = await api.CreateUserAsync("Admin", isAdministrator: true);
-        var teacher = await api.CreateUserAsync("Lärare");
-        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name, firstTeacherUserId = teacher }, Ct);
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var created = await response.Content.ReadFromJsonAsync<ClassBody>(Ct);
-        return (created!.Id, teacher);
-    }
+    Task<(Guid ClassId, Guid TeacherId)> CreateClassAsync(string name = "9A") => api.CreateClassWithTeacherAsync(name);
 
     static Task<HttpResponseMessage> SetRoleAsync(HttpClient client, Guid classId, Guid userId, string role) =>
         client.PutAsJsonAsync($"/api/classes/{classId}/members/{userId}", new { role }, Ct);
@@ -39,17 +31,34 @@ public sealed class ClassesTests(ApiFixture api)
     // ---------- UC-01 Skapa klass ----------
 
     [Fact]
-    public async Task Administrator_creates_class_and_first_teacher_becomes_member_with_teacher_role()
+    public async Task Administrator_creates_class_without_members_and_gets_teacher_invitation()
     {
         var admin = await api.CreateUserAsync(isAdministrator: true);
-        var teacher = await api.CreateUserAsync();
 
-        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name = "  9A  ", firstTeacherUserId = teacher }, Ct);
+        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name = "  9A  " }, Ct);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var created = await response.Content.ReadFromJsonAsync<ClassBody>(Ct);
+        var created = await response.Content.ReadFromJsonAsync<ApiFixture.CreatedClass>(Ct);
         Assert.Equal("9A", created!.Name);
         Assert.Equal($"/api/classes/{created.Id}", response.Headers.Location?.ToString());
+        Assert.StartsWith("/aktivera#", created.TeacherInvitation.Url);
+        await using var connection = await api.OpenAsync();
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM class_memberships WHERE ClassId = @id", new { id = created.Id }));
+    }
+
+    [Fact]
+    public async Task Teacher_invitation_from_class_creation_makes_user_teacher()
+    {
+        var admin = await api.CreateUserAsync(isAdministrator: true);
+        var created = await (await api.As(admin).PostAsJsonAsync("/api/classes", new { name = "9A" }, Ct))
+            .Content.ReadFromJsonAsync<ApiFixture.CreatedClass>(Ct);
+        var teacher = await api.CreateUserAsync();
+
+        var accept = await api.As(teacher).PostAsJsonAsync(
+            "/api/invitations/accept", new { token = ApiFixture.TokenFrom(created!.TeacherInvitation.Url) }, Ct);
+
+        Assert.Equal(HttpStatusCode.OK, accept.StatusCode);
         Assert.Equal("Teacher", await RoleOfAsync(created.Id, teacher));
     }
 
@@ -57,10 +66,9 @@ public sealed class ClassesTests(ApiFixture api)
     public async Task Created_class_records_who_created_it_and_when()
     {
         var admin = await api.CreateUserAsync(isAdministrator: true);
-        var teacher = await api.CreateUserAsync();
         var before = DateTime.UtcNow.AddSeconds(-5);
 
-        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name = "9A", firstTeacherUserId = teacher }, Ct);
+        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name = "9A" }, Ct);
         var created = await response.Content.ReadFromJsonAsync<ClassBody>(Ct);
 
         await using var connection = await api.OpenAsync();
@@ -74,9 +82,8 @@ public sealed class ClassesTests(ApiFixture api)
     public async Task Non_administrator_cannot_create_class()
     {
         var (_, teacher) = await CreateClassAsync();
-        var other = await api.CreateUserAsync();
 
-        var response = await api.As(teacher).PostAsJsonAsync("/api/classes", new { name = "9B", firstTeacherUserId = other }, Ct);
+        var response = await api.As(teacher).PostAsJsonAsync("/api/classes", new { name = "9B" }, Ct);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -84,11 +91,24 @@ public sealed class ClassesTests(ApiFixture api)
     [Fact]
     public async Task Anonymous_cannot_create_class()
     {
-        var teacher = await api.CreateUserAsync();
-
-        var response = await api.Anonymous().PostAsJsonAsync("/api/classes", new { name = "9B", firstTeacherUserId = teacher }, Ct);
+        var response = await api.Anonymous().PostAsJsonAsync("/api/classes", new { name = "9B" }, Ct);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Anonymous_gets_401_even_with_invalid_body()
+    {
+        var (classId, _) = await CreateClassAsync();
+        var user = await api.CreateUserAsync();
+        var anonymous = api.Anonymous();
+
+        var brokenJson = await anonymous.PostAsync("/api/classes",
+            new StringContent("{", System.Text.Encoding.UTF8, "application/json"), Ct);
+        var unknownRole = await SetRoleAsync(anonymous, classId, user, "Rektor");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, brokenJson.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, unknownRole.StatusCode);
     }
 
     [Theory]
@@ -97,9 +117,8 @@ public sealed class ClassesTests(ApiFixture api)
     public async Task Class_name_must_not_be_empty(string name)
     {
         var admin = await api.CreateUserAsync(isAdministrator: true);
-        var teacher = await api.CreateUserAsync();
 
-        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name, firstTeacherUserId = teacher }, Ct);
+        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name }, Ct);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.NotEmpty(await ValidationErrorsAsync(response, "name"));
@@ -111,22 +130,10 @@ public sealed class ClassesTests(ApiFixture api)
     public async Task Class_name_may_be_at_most_100_characters(int length, HttpStatusCode expected)
     {
         var admin = await api.CreateUserAsync(isAdministrator: true);
-        var teacher = await api.CreateUserAsync();
 
-        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name = new string('Ö', length), firstTeacherUserId = teacher }, Ct);
+        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name = new string('Ö', length) }, Ct);
 
         Assert.Equal(expected, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task First_teacher_must_exist()
-    {
-        var admin = await api.CreateUserAsync(isAdministrator: true);
-
-        var response = await api.As(admin).PostAsJsonAsync("/api/classes", new { name = "9A", firstTeacherUserId = Guid.CreateVersion7() }, Ct);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.NotEmpty(await ValidationErrorsAsync(response, "firstTeacherUserId"));
     }
 
     [Fact]
@@ -209,7 +216,12 @@ public sealed class ClassesTests(ApiFixture api)
         var admin = await api.CreateUserAsync(isAdministrator: true);
         var teacher = await api.CreateUserAsync();
         foreach (var name in new[] { "Öst", "Zeta", "Ängby", "Åby" })
-            await api.As(admin).PostAsJsonAsync("/api/classes", new { name, firstTeacherUserId = teacher }, Ct);
+        {
+            var created = await (await api.As(admin).PostAsJsonAsync("/api/classes", new { name }, Ct))
+                .Content.ReadFromJsonAsync<ApiFixture.CreatedClass>(Ct);
+            await api.As(teacher).PostAsJsonAsync(
+                "/api/invitations/accept", new { token = ApiFixture.TokenFrom(created!.TeacherInvitation.Url) }, Ct);
+        }
         await CreateClassAsync("Annan lärares klass");
 
         var classes = await api.As(teacher).GetFromJsonAsync<ClassBody[]>("/api/classes", Ct);

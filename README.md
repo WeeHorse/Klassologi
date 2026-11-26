@@ -53,7 +53,19 @@ dotnet run --project src/Klassologi.Api
 
 Migreringarna i `src/Klassologi.Api/Data/Migrations/` körs automatiskt när API:t startar. `GET /api/status` visar att API:t når databasen.
 
-Endpoints under `/api/classes` kräver inloggning, som läggs till i steg 3. Tills dess svarar de 401 och används bara via integrationstesterna, som har ett eget autentiseringsschema. Se [UseCases.md](Specifications/UseCases.md#byggordning-för-mvp).
+Under utveckling finns API-dokumentation och ett testgränssnitt på http://localhost:5080/scalar. Logga in med `POST /api/auth/login`, så skickas sessionscookien med i följande anrop.
+
+De flesta endpoints kräver inloggning. API:t finns i [UseCases.md](Specifications/UseCases.md#api-steg-3a).
+
+#### Första administratören
+
+Konton skapas bara genom inbjudan. Den första administratören bjuds in med ett kommando på servern:
+
+```sh
+dotnet run --project src/Klassologi.Api -- create-admin-invitation
+```
+
+Kommandot skriver ut en engångslänk som gäller i 24 timmar. Länkens adress byggs från `App:PublicBaseUrl` (lokalt `http://localhost:5173`). Gränssnittet för att använda länken kommer i steg 3b.
 
 ### 3. Webbapp
 
