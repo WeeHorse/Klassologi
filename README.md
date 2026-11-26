@@ -65,7 +65,7 @@ Konton skapas bara genom inbjudan. Den första administratören bjuds in med ett
 dotnet run --project src/Klassologi.Api -- create-admin-invitation
 ```
 
-Kommandot skriver ut en engångslänk som gäller i 24 timmar. Länkens adress byggs från `App:PublicBaseUrl` (lokalt `http://localhost:5173`). Gränssnittet för att använda länken kommer i steg 3b.
+Kommandot skriver ut en engångslänk som gäller i 24 timmar. Länkens adress byggs från `App:PublicBaseUrl` (lokalt `http://localhost:5173`). Öppna länken i webbläsaren för att skapa administratörskontot.
 
 ### 3. Webbapp
 
@@ -85,4 +85,4 @@ npm run dev
 | Frontendlogik (Vitest) | `npm test` i `web/`, eller `npm run test:ui` för ett gränssnitt i webbläsaren som kör om testerna vid ändringar | – |
 | Lint (förbjuder bl.a. `innerHTML`) | `npm run lint` i `web/` | – |
 | Typkontroll och bygge | `npm run build` i `web/` | – |
-| Hela kedjan (Playwright) | `npm run e2e` i `web/` | Databasen igång och anslutningssträngen satt. Startar API och webbapp själv. Första gången: `npx playwright install chromium`. |
+| Hela kedjan och tillgänglighet (Playwright + axe) | `npm run e2e` i `web/` | Databasen igång och anslutningssträngen satt. Startar egna instanser av API (port 5081) och webbapp (port 5174), skapar en administratör med kommandot och skapar testkonton i utvecklingsdatabasen. Första gången: `npx playwright install chromium`. |

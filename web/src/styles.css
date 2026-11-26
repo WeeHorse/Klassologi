@@ -1,0 +1,68 @@
+/* Egen styling ovanpå Ionic. Ionic stylas med sina CSS-variabler, inte genom att skriva över intern CSS. */
+
+/* Innehållet hålls läsbart brett även på datorn. */
+.container {
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+.page-title {
+  font-size: inherit;
+  font-weight: inherit;
+  margin: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section {
+  margin-block-start: 2rem;
+}
+
+.section h2 {
+  font-size: 1.25rem;
+}
+
+.lead {
+  font-size: 1.1rem;
+}
+
+.muted,
+.hint {
+  color: var(--ion-color-step-600, var(--ion-text-color));
+}
+
+.form-error {
+  margin: 0;
+}
+
+.share-link {
+  border: 1px solid var(--ion-color-step-300, currentColor);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-block: 1rem;
+  width: 100%;
+}
+
+.share-link p {
+  margin: 0 0 0.5rem;
+}
+
+.share-link__label {
+  font-weight: 600;
+}
+
+.share-link__url {
+  font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* Synlig fokusmarkering för tangentbord (WCAG 2.4.7). */
+a:focus-visible {
+  outline: 3px solid var(--ion-color-primary);
+  outline-offset: 2px;
+}

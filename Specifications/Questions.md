@@ -173,3 +173,14 @@ Hur håller webbappen reda på att användaren är inloggad: med en cookie som w
 **Varför det spelar roll:** En `HttpOnly`-cookie kan inte läsas av JavaScript och skyddar därför bättre mot stöld via XSS. Den fungerar enklast när webbappen och API:t har samma ursprung. Capacitor-appen har senare ett annat ursprung och kan behöva token.
 
 **Beslut:** `HttpOnly`-, `Secure`- och `SameSite=Strict`-cookie från Identity för webbappen, som har samma ursprung som API:t. Inloggning med token läggs till som ett andra schema när Capacitor-appen kommer.
+
+## Q17. Krav på tillgänglighet
+
+**Status:** Besvarad (2026-11-26)
+**Berör:** Användbarhet, Gränssnitt, Test
+
+Ska gränssnittet uppfylla WCAG 2.2 på nivå AA (kontrast, tangentbordsnavigering, skärmläsare, textstorlek)?
+
+**Varför det spelar roll:** Användbarhetsheuristikerna täcker inte tillgänglighet. Kravet påverkar styling, komponentval och tester, till exempel automatisk kontroll med axe i Playwright. Det kan dessutom vara ett krav från skolor som köper tjänsten. Behövs när vyerna i steg 3b byggs.
+
+**Beslut:** Ja. Gränssnittet ska uppfylla WCAG 2.2 nivå AA. Det kontrolleras automatiskt med axe i Playwright för varje vy, och manuellt (tangentbord och skärmläsare) vid den heuristiska utvärderingen. Se [Functionality.md](Functionality.md#tillgänglighet).
