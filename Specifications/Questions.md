@@ -97,3 +97,12 @@ Funktionslistan nämner "kategorisering av elever". Vad ska kategoriseras (t.ex.
 Får bara lärare publicera på anslagstavlan, eller även elevrepresentanter och elever? Får alla kommentera och reagera?
 
 **Varför det spelar roll:** Avgör anslagstavlans karaktär (envägsinformation eller diskussion) och behovet av moderering. Krävs för att detaljera UC-08 och UC-11 i MVP.
+
+## Q11. Svar när en icke-medlem försöker nå en klass
+
+**Status:** Öppen
+**Berör:** Integritet och behörighet, [Architecture](Architecture.md#klassbunden-förfrågan)
+
+Ska API:t svara 403 (åtkomst nekad) eller 404 (finns inte) när en användare försöker nå data i en klass som användaren inte tillhör?
+
+**Varför det spelar roll:** 404 avslöjar inte att klassen finns, men gör felsökning svårare. Krävs för att detaljera UC-09 och övriga klassbundna use cases.

@@ -25,7 +25,7 @@ Status per val: **Beslutat** | **Förslag** (ej beslutat) | **Att verifiera**
 
 ## Arkitektur
 
-**Beslutat:** En tunn, imperativ arkitektur med minimum av ceremoni.
+**Beslutat:** En tunn, imperativ arkitektur med minimum av ceremoni. Diagram finns i [Architecture.md](Architecture.md).
 
 Principer:
 
