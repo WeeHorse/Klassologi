@@ -233,7 +233,7 @@ Report the result and remaining uncertainties.
 - Feature changes reach `main` only through a pull request. The developer reviews, approves and merges. The AI never merges.
 - Specification and documentation changes that belong to a feature are included in that feature's branch and pull request.
 - Standalone specification and documentation changes, not tied to a feature, may be committed directly to `main`.
-- Tests run locally until a CI pipeline is in place. Before opening or updating a pull request, run the relevant tests locally and state in the pull request description which tests were run and their results. Do not claim tests passed unless they were actually run.
+- A CI pipeline (`.github/workflows/tests.yml`) runs all automated tests on every pull request to `main`. Before opening or updating a pull request, still run the relevant tests locally and state in the pull request description which tests were run and their results. Do not claim tests passed unless they were actually run, locally or in CI.
 
 ## Continuous quality assurance
 
