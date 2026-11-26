@@ -15,12 +15,20 @@ Ska anonyma frågor vara anonyma för alla, inklusive lärare och administratör
 
 ## Q2. Användarnas ålder och inloggning
 
-**Status:** Öppen
+**Status:** Besvarad (2026-11-26)
 **Berör:** Användare, profiler och roller, Integritet
 
 Kan användarna vara minderåriga? Ska inloggning ske via skolans befintliga identitetslösning (SSO) eller via egna konton?
 
 **Varför det spelar roll:** Påverkar GDPR-hantering, samtycke, vilka personuppgifter vi får lagra och val av autentiseringslösning.
+
+**Beslut:**
+
+- **Ålder:** Användarna är vuxna (t.ex. yrkeshögskola, vuxenutbildning eller högskola). GDPR gäller ändå, så vi lagrar bara de personuppgifter som behövs.
+- **Inloggning:** Egna konton med ASP.NET Core Identity och egen lagring via Dapper. Ingen SSO i MVP:n.
+- **Konton:** Skapas bara genom inbjudan till en klass. Det finns ingen öppen registrering. En enkel variant av UC-02 flyttas därför till steg 3.
+
+Se [Technology.md](Technology.md#autentisering) och [UseCases.md](UseCases.md#byggordning-för-mvp).
 
 ## Q3. Omfattning – en klass, flera klasser eller flera skolor?
 
@@ -132,3 +140,36 @@ Servern använder MySQL:s standard `utf8mb4_0900_ai_ci`, som behandlar å och ä
 Vad får en elevrepresentant göra utöver en elev? Till exempel publicera på anslagstavlan ([Q10](#q10-vem-får-publicera-och-kommentera-på-anslagstavlan)), moderera eller ta emot frågor från klassen (UC-17).
 
 **Varför det spelar roll:** Rollen finns i datamodellen men har ännu inga egna rättigheter. Krävs för att detaljera UC-08 och UC-17.
+
+## Q14. Hur når inbjudan och återställning av lösenord användaren?
+
+**Status:** Besvarad (2026-11-26)
+**Berör:** UC-02, UC-04, Drift
+
+Konton skapas bara genom inbjudan ([Q2](#q2-användarnas-ålder-och-inloggning)). Ska inbjudningslänken skickas med e-post, eller visas för den som bjuder in, så att den personen delar den själv? Samma fråga gäller återställning av lösenord.
+
+**Varför det spelar roll:** E-post kräver en tjänst för utskick och hantering av leveransfel. En länk som delas manuellt är enklare men kräver att läraren gör ett steg till.
+
+**Beslut:** I MVP:n visas en engångslänk för den som bjuder in, och den personen delar den själv. Ingen e-posttjänst. Återställning av lösenord görs på samma sätt av en lärare i klassen eller en administratör. E-post kan läggas till senare.
+
+## Q15. Hur skapas den första administratören?
+
+**Status:** Besvarad (2026-11-26)
+**Berör:** UC-01, Drift, Säkerhet
+
+Konton skapas bara genom inbjudan, och klasser skapas bara av administratörer. Vem bjuder då in den första administratören?
+
+**Varför det spelar roll:** Den första administratören är systemets högsta behörighet. Vägen dit får inte gå att använda av vem som helst.
+
+**Beslut:** Ett kommando i API:t skriver ut en engångslänk för inbjudan av en administratör. Kommandot kräver åtkomst till servern och databasen, inte till webben.
+
+## Q16. Session: cookie eller token?
+
+**Status:** Besvarad (2026-11-26)
+**Berör:** UC-05, Säkerhet, Mobilapp
+
+Hur håller webbappen reda på att användaren är inloggad: med en cookie som webbläsaren skickar automatiskt, eller med en token som appen själv skickar i varje anrop?
+
+**Varför det spelar roll:** En `HttpOnly`-cookie kan inte läsas av JavaScript och skyddar därför bättre mot stöld via XSS. Den fungerar enklast när webbappen och API:t har samma ursprung. Capacitor-appen har senare ett annat ursprung och kan behöva token.
+
+**Beslut:** `HttpOnly`-, `Secure`- och `SameSite=Strict`-cookie från Identity för webbappen, som har samma ursprung som API:t. Inloggning med token läggs till som ett andra schema när Capacitor-appen kommer.
