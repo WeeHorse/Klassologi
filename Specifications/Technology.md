@@ -24,7 +24,7 @@ Status per val: **Beslutat** | **Förslag** (ej beslutat) | **Att verifiera**
 | Filer | S3-kompatibel objektlagring | Förslag |
 | Video/röst | LiveKit | Förslag – senare |
 | Drift | EU-baserad hosting | Förslag |
-| Test | xUnit (backend), Newman (API), Vitest och Playwright (frontend) – se nedan | Beslutat |
+| Test | xUnit (backend), Vitest och Playwright (frontend), Newman efter driftsättning – se nedan | Beslutat |
 
 ## Arkitektur
 
@@ -73,7 +73,7 @@ web/                 frontend (Vite, lit-html)
 - **Inget `innerHTML`.** Förbjuds med en lint-regel, för att undvika XSS.
 - **API-anrop via en egen klient** (`web/src/api.ts`, beslutat 2026-11-26): tunna, typade funktioner ovanpå `fetch`. Typerna skrivs för hand efter API-kontraktet i [UseCases.md](UseCases.md#api-steg-3a), med OpenAPI-dokumentet som referens. Eftersom typerna inte genereras kan klienten glida isär från API:t. Det fångas av Playwright-testerna, som kör mot det riktiga API:t.
 - **Navigering med en egen, minimal router** över History API:t. Varje vy är en modul som renderar sig själv med lit-html. Ionics egen router används inte, eftersom den förutsätter att varje vy är en egen webbkomponent.
-- **Tillgänglighet:** WCAG 2.2 AA ([Q17](Questions.md#q17-krav-på-tillgänglighet)), kontrolleras med axe (`@axe-core/playwright`).
+- **Tillgänglighet:** grundläggande nivå ([Q17](Questions.md#q17-krav-på-tillgänglighet)), kontrolleras med axe (`@axe-core/playwright`).
 - **Webben ska fungera fullt ut på egen hand.** Capacitor-skalet lägger bara till mobilfunktioner som push-notiser och notisåtgärder via plugins. Webbkoden ska inte behöva skrivas om.
 
 **UI-komponenter (beslutat 2026-11-26):** Ionic Core 9 (`@ionic/core`, MIT), fäst vid en version som har funnits i minst två veckor.
@@ -128,14 +128,15 @@ web/                 frontend (Vite, lit-html)
 |---------|----------------|------------------|
 | xUnit (enhetstester) | Affärsregler isolerat | Roller, behörighetsregler, anonymitet, validering |
 | xUnit + `WebApplicationFactory` + Testcontainers | API:t inifrån, mot riktig MySQL | Klassavgränsning, behörighet per endpoint, felfall, databasbeteende |
-| Newman | API:t utifrån som svart låda, mot en körande miljö | Use-case-flöden från början till slut, kontraktet mot frontend, kontroller efter driftsättning |
-| Vitest | Frontendlogik | |
-| Playwright | Hela flöden i webbläsaren | Kritiska flöden i MVP:n |
+| Vitest | Frontendlogik | Router, API-klientens felhantering, etiketter |
+| Playwright + axe | Hela flöden i webbläsaren mot det riktiga API:t | Use-case-flöden från början till slut, kontraktet mot API:t, grundläggande tillgänglighet |
+| Newman (senare) | API:t utifrån som svart låda, mot en körande miljö | Rökprov efter driftsättning |
 
 **Riktlinjer:**
 
-- **Ingen dubblering.** Behörighet och klassavgränsning testas i xUnit-integrationstesterna, där testdata kan styras. Newman testar flöden och kontrakt.
-- **Oberoende verifiering.** Newman-samlingar skrivs utifrån use cases och API-kontraktet, inte utifrån implementationen.
+- **Ingen dubblering.** Behörighet och klassavgränsning testas i xUnit-integrationstesterna, där testdata kan styras. Playwright testar flöden och kontraktet mot API:t.
+- **Oberoende verifiering.** Testerna skrivs utifrån use cases och API-kontraktet, inte utifrån implementationen.
+- **Newman (beslutat 2026-11-26):** skjuts upp tills det finns en driftmiljö. Syftet är då rökprov efter driftsättning. Riktlinjerna nedan gäller när det införs.
 - **Newman, inte Postman CLI.** Newman är öppen källkod och kräver inget Postman-konto.
 - **Samlingar i repot.** Postman-samlingar exporteras till repot, hålls små och delas upp per use case eller lager.
 - **Inga hemligheter i repot.** Tokens och lösenord läses från miljövariabler, aldrig från samlingar eller miljöfiler i repot. Miljöer med hemligheter synkas inte till Postmans moln.

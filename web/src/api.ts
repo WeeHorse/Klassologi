@@ -18,7 +18,7 @@ export type Me = { id: string; displayName: string; email: string | null; isAdmi
 export type ClassSummary = { id: string; name: string; myRole: Role | null };
 export type Link = { url: string; expiresAt: string };
 export type CreatedClass = { id: string; name: string; teacherInvitation: Link };
-export type Member = { userId: string; displayName: string; role: Role };
+export type Member = { userId: string; displayName: string; role: Role; isAdministrator: boolean };
 export type InvitationInfo = { className: string | null; role: Role | null; isAdministrator: boolean };
 export type Accepted = { classId: string | null };
 

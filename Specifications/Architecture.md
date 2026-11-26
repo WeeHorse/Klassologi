@@ -40,7 +40,7 @@ flowchart TB
     larare([Lärare])
 
     subgraph klient[Klient]
-        web["Webbapp<br/>TypeScript + Vite + lit-html"]
+        web["Webbapp<br/>TypeScript + Vite + lit-html<br/>+ Ionic Core"]
         cap["Capacitor-skal (senare)<br/>iOS / Android"]
     end
 
@@ -63,7 +63,7 @@ flowchart TB
 
 | Container | Ansvar | Status |
 |-----------|--------|--------|
-| Webbapp | Gränssnittet. Fungerar fullt ut på egen hand. | Beslutat |
+| Webbapp | Gränssnittet med Ionic-komponenter. Fungerar fullt ut på egen hand. | Beslutat |
 | Capacitor-skal | Mobilappar och mobilfunktioner (push, notisåtgärder) | Beslutat, senare |
 | Klassologi.Api | Affärsregler, behörighet, klassavgränsning och inloggning (Identity) | Beslutat |
 | SignalR | Realtid för chatt och kanaler | Förslag |

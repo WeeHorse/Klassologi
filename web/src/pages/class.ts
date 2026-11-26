@@ -109,8 +109,8 @@ export async function mountClass(root: HTMLElement, alive: () => boolean, classI
   `;
 
   const memberItem = (m: Member, me: Me): TemplateResult => {
-    // Lärare kan inte återställa lösenord för andra lärare (specifikationen, steg 3).
-    const canReset = me.isAdministrator || m.role !== 'Teacher';
+    // Lärare kan inte återställa lösenord för lärare eller administratörer (specifikationen, steg 3; heuristik 5).
+    const canReset = me.isAdministrator || (m.role !== 'Teacher' && !m.isAdministrator);
     const reset = state.resets.get(m.userId);
     return html`
       <ion-item>

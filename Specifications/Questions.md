@@ -183,4 +183,4 @@ Ska gränssnittet uppfylla WCAG 2.2 på nivå AA (kontrast, tangentbordsnavigeri
 
 **Varför det spelar roll:** Användbarhetsheuristikerna täcker inte tillgänglighet. Kravet påverkar styling, komponentval och tester, till exempel automatisk kontroll med axe i Playwright. Det kan dessutom vara ett krav från skolor som köper tjänsten. Behövs när vyerna i steg 3b byggs.
 
-**Beslut:** Ja. Gränssnittet ska uppfylla WCAG 2.2 nivå AA. Det kontrolleras automatiskt med axe i Playwright för varje vy, och manuellt (tangentbord och skärmläsare) vid den heuristiska utvärderingen. Se [Functionality.md](Functionality.md#tillgänglighet).
+**Beslut (ändrat 2026-11-26):** Grundläggande tillgänglighet utan uttalad WCAG-nivå: etiketter, kontrast och tangentbordsåtkomst, kontrollerat automatiskt med axe. Det första beslutet var WCAG 2.2 nivå AA med manuell prövning, men ambitionen sänktes. Se [Functionality.md](Functionality.md#tillgänglighet).

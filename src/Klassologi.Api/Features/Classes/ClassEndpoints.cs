@@ -23,7 +23,7 @@ public static class ClassEndpoints
 
     public sealed record CreateClassRequest(string? Name);
     public sealed record CreatedClassResponse(Guid Id, string Name, OneTimeLinks.Link TeacherInvitation);
-    public sealed record MemberResponse(Guid UserId, string DisplayName, ClassRole Role);
+    public sealed record MemberResponse(Guid UserId, string DisplayName, ClassRole Role, bool IsAdministrator);
     public sealed record SetMemberRoleRequest(ClassRole Role);
     public sealed record ClassResponse(Guid Id, string Name, ClassRole? MyRole);
 
@@ -96,16 +96,16 @@ public static class ClassEndpoints
         var access = await ClassAccess.CheckAsync(connection, classId, userId);
         if (access.Deny(access.CanManageMembers) is { } denied) return denied;
 
-        var rows = await connection.QueryAsync<(Guid UserId, string DisplayName, string Role)>(
+        var rows = await connection.QueryAsync<(Guid UserId, string DisplayName, string Role, bool IsAdministrator)>(
             """
-            SELECT u.Id, u.DisplayName, m.Role
+            SELECT u.Id, u.DisplayName, m.Role, u.IsAdministrator
             FROM class_memberships m
             JOIN users u ON u.Id = m.UserId
             WHERE m.ClassId = @classId
             ORDER BY u.DisplayName, u.Id
             """,
             new { classId });
-        return Results.Ok(rows.Select(r => new MemberResponse(r.UserId, r.DisplayName, Enum.Parse<ClassRole>(r.Role))));
+        return Results.Ok(rows.Select(r => new MemberResponse(r.UserId, r.DisplayName, Enum.Parse<ClassRole>(r.Role), r.IsAdministrator)));
     }
 
     // UC-03
