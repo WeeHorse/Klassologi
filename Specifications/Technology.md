@@ -16,8 +16,9 @@ Status per val: **Beslutat** | **Förslag** (ej beslutat) | **Att verifiera**
 | Migreringar | Versionerade SQL-skript med DbUp (se nedan) | Beslutat |
 | Realtid | SignalR | Förslag – behövs från lager 4 (kommunikation) |
 | Kontrakt mot klient | OpenAPI-dokument (`Microsoft.AspNetCore.OpenApi`) och Scalar som testgränssnitt, bara under utveckling | Beslutat |
-| Klient mot API | Genererad TypeScript-klient från OpenAPI | Förslag – avgörs i steg 3b |
+| Klient mot API | Egen, handskriven klient med `fetch` (se nedan) | Beslutat |
 | Klient | TypeScript + Vite + lit-html, webb först (se nedan) | Beslutat |
+| UI-komponenter | Ionic Core 9 (`@ionic/core`), webbkomponenter med plattformsanpassat utseende (se nedan) | Beslutat |
 | Mobilapp | Capacitor-skal kring webbappen, när appen ska ut i appbutikerna | Beslutat |
 | Autentisering | ASP.NET Core Identity med egen lagring via Dapper, konton bara genom inbjudan (se nedan) | Beslutat |
 | Filer | S3-kompatibel objektlagring | Förslag |
@@ -67,11 +68,27 @@ web/                 frontend (Vite, lit-html)
 
 **Principer:**
 
-- **Vanlig imperativ TypeScript** organiserad per funktion, i linje med backendens arkitektur. Inget UI-ramverk.
+- **Vanlig imperativ TypeScript** organiserad per funktion, i linje med backendens arkitektur. Inget ramverk för tillstånd eller rendering.
 - **lit-html enbart för rendering.** Det är ett mallbibliotek, inte ett ramverk, och det escapar text automatiskt. Användargenererat innehåll (inlägg, kommentarer, chatt) visas därför säkert som text.
 - **Inget `innerHTML`.** Förbjuds med en lint-regel, för att undvika XSS.
-- **API-anrop via `fetch`** genom en klient som genereras från backendens OpenAPI-kontrakt (förslag).
+- **API-anrop via en egen klient** (`web/src/api.ts`, beslutat 2026-11-26): tunna, typade funktioner ovanpå `fetch`. Typerna skrivs för hand efter API-kontraktet i [UseCases.md](UseCases.md#api-steg-3a), med OpenAPI-dokumentet som referens. Eftersom typerna inte genereras kan klienten glida isär från API:t. Det fångas av Playwright-testerna, som kör mot det riktiga API:t.
+- **Navigering med en egen, minimal router** över History API:t. Varje vy är en modul som renderar sig själv med lit-html. Ionics egen router används inte, eftersom den förutsätter att varje vy är en egen webbkomponent.
+- **Tillgänglighet:** WCAG 2.2 AA ([Q17](Questions.md#q17-krav-på-tillgänglighet)), kontrolleras med axe (`@axe-core/playwright`).
 - **Webben ska fungera fullt ut på egen hand.** Capacitor-skalet lägger bara till mobilfunktioner som push-notiser och notisåtgärder via plugins. Webbkoden ska inte behöva skrivas om.
+
+**UI-komponenter (beslutat 2026-11-26):** Ionic Core 9 (`@ionic/core`, MIT), fäst vid en version som har funnits i minst två veckor.
+
+- Komponenterna är webbkomponenter och används direkt i lit-html-mallar med egenskaps- och händelsebindningar (`.value=`, `@ionInput=`). Inget Angular, React eller Vue.
+- Utseendet anpassas efter plattform: iOS-stil på iPhone, Material-stil på Android. Det minskar skillnaden mot en native-app i Capacitor-skalet.
+- Ionic står för färdiga mobilmönster: flikar, listor, modaler, toasts, dra för att uppdatera och virtuell scroll.
+- Egen styling görs med Ionics CSS-variabler och `::part`, inte genom att skriva över intern CSS.
+
+*Konsekvenser:*
+- Appen ser ut som en mobilapp även på datorn. Datorlayout (t.ex. `ion-split-pane`) måste utformas medvetet, eftersom webben ska fungera fullt ut.
+- Ionic genomsyrar mallarna och är svårt att byta bort senare.
+- Komponenterna använder Shadow DOM. Playwright hanterar det, men selektorer bör bygga på roller och etiketter, inte intern struktur.
+
+*Övervägda alternativ:* Bootstrap (stabilt och välkänt, men generiskt webbutseende och JavaScript-komponenter som krockar med lit-html), Pico CSS och egen CSS (lättare, men utan mobilmönster och plattformsanpassning).
 
 **Stoppunkt:** Om vi börjar bygga eget maskineri för tillstånd och omritning, troligen kring realtidschatten i lager 4, utvärderar vi ett lätt ramverk (t.ex. Svelte eller Preact) i stället för att växa ett eget.
 
@@ -179,6 +196,16 @@ MySQL saknar radnivåskydd (RLS) och har några standardbeteenden som påverkar 
 
 ## Att verifiera
 
+- **Paketstorlek med Ionic:** första bygget i steg 3b är 607 kB (136 kB gzip) i en enda fil. Det fungerar, men koddelning per vy bör övervägas när fler vyer tillkommer.
+- **Säkra cookies i Safari lokalt:** Chrome och Firefox godtar `Secure`-cookies på `http://localhost`, men Safari har historiskt inte gjort det. Om inloggningen inte fungerar i Safari under utveckling behövs HTTPS lokalt.
+
+**Erfarenheter av Ionic i steg 3b:**
+
+- Integrationen med lit-html fungerar. Komponenterna registreras en och en i `web/src/ionic.ts`.
+- Datorlayouten löses med en centrerad innehållsbredd (`.container`).
+- Ionics inbyggda knapp för att visa lösenord har fast engelsk etikett. Vi använder en egen knapp med svensk etikett (WCAG 3.1.2).
+- `ion-content` har redan rollen `main`, så vyerna lägger inte till ett eget `<main>`.
+- I Playwright tar Ionics synliga kontrollyta emot klick i stället för `ion-select`s dolda knapp. Testerna använder tangentbordet, vilket samtidigt prövar tangentbordsåtkomst.
 - **Notisåtgärder i Capacitor:** att snabbsvar och reaktioner direkt från notisen och låsskärmen går att göra med befintliga plugins på både iOS och Android, eller vad som kräver egen native-kod. Behövs först för lager 8 (notiser).
 - **Klientens IP-adress i drift:** bakom en omvänd proxy måste `ForwardedHeaders` konfigureras. Annars delar alla klienter samma gräns för anropstakt. Avgörs när driften designas.
 - **SAML-stöd** om inloggning via skolans federation blir aktuellt efter MVP:n ([Q2](Questions.md#q2-användarnas-ålder-och-inloggning)).
