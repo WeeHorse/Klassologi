@@ -4,9 +4,12 @@ En social applikation för skolklasser. Krav, beslut och öppna frågor finns i 
 
 ## Lokal utveckling
 
-### Databas (MySQL i Docker)
+Kräver:
+- Docker Engine 25 eller senare med Compose (Testcontainers kräver Docker API 1.44)
+- .NET SDK 10
+- Node.js 22 eller senare
 
-Kräver Docker med Compose.
+### 1. Databas (MySQL i Docker)
 
 1. Skapa `.env` från mallen och byt ut lösenorden:
 
@@ -24,7 +27,7 @@ Kräver Docker med Compose.
 
    Databasen är redo när `docker compose ps` visar `healthy`. Den nås bara från den egna datorn, på `127.0.0.1:3306` (porten kan ändras med `MYSQL_PORT` i `.env`).
 
-3. Anslut med en klient:
+3. Anslut med en klient vid behov:
 
    ```sh
    docker compose exec mysql sh -c 'mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
@@ -32,10 +35,40 @@ Kräver Docker med Compose.
 
 Stoppa med `docker compose down`. Datat ligger kvar i en Docker-volym. `docker compose down -v` raderar datat och ger en tom databas vid nästa start.
 
-Anslutningssträng för .NET (MySqlConnector):
+### 2. API (.NET)
 
-```
-Server=127.0.0.1;Port=3306;Database=klassologi;User ID=klassologi;Password=<MYSQL_PASSWORD>;SslMode=Required
+Sätt anslutningssträngen som user secret, så att lösenordet hålls utanför repot (värdena från `.env`):
+
+```sh
+dotnet user-secrets set "ConnectionStrings:Klassologi" \
+  "Server=127.0.0.1;Port=3306;Database=klassologi;User ID=klassologi;Password=<MYSQL_PASSWORD>;SslMode=Required" \
+  --project src/Klassologi.Api
 ```
 
-Schema och migreringar finns ännu inte.
+Starta API:t på `http://localhost:5080`:
+
+```sh
+dotnet run --project src/Klassologi.Api
+```
+
+Migreringarna i `src/Klassologi.Api/Data/Migrations/` körs automatiskt när API:t startar. `GET /api/status` visar att API:t når databasen.
+
+### 3. Webbapp
+
+```sh
+cd web
+npm install
+npm run dev
+```
+
+Öppna `http://localhost:5173`. Vite skickar vidare anrop till `/api` till API:t.
+
+## Tester
+
+| Vad | Kommando | Kräver |
+|-----|----------|--------|
+| Backend (xUnit + Testcontainers) | `dotnet test --solution Klassologi.slnx` | Docker. Startar en egen databas och rör inte utvecklingsdatabasen. |
+| Frontendlogik (Vitest) | `npm test` i `web/`, eller `npm run test:ui` för ett gränssnitt i webbläsaren som kör om testerna vid ändringar | – |
+| Lint (förbjuder bl.a. `innerHTML`) | `npm run lint` i `web/` | – |
+| Typkontroll och bygge | `npm run build` i `web/` | – |
+| Hela kedjan (Playwright) | `npm run e2e` i `web/` | Databasen igång och anslutningssträngen satt. Startar API och webbapp själv. Första gången: `npx playwright install chromium`. |

@@ -13,7 +13,7 @@ Status per val: **Beslutat** | **Förslag** (ej beslutat) | **Att verifiera**
 | Databas | MySQL, aktuell LTS-version (9.7) | Beslutat |
 | Lokal databas | MySQL i Docker via Docker Compose (se nedan) | Beslutat |
 | Dataåtkomst | Dapper + MySqlConnector, ingen EF Core (se nedan) | Beslutat |
-| Migreringar | Versionerade SQL-skript, t.ex. med DbUp | Förslag |
+| Migreringar | Versionerade SQL-skript med DbUp (se nedan) | Beslutat |
 | Realtid | SignalR | Förslag – behövs från lager 4 (kommunikation) |
 | Kontrakt mot klient | OpenAPI, genererad TypeScript-klient | Förslag |
 | Klient | TypeScript + Vite + lit-html, webb först (se nedan) | Beslutat |
@@ -36,21 +36,28 @@ Principer:
 - **Affärsregler i vanlig kod där de hör hemma.** Regler som rör roller, anonymitet, moderering och klassavgränsning ska vara samlade, läsbara och enhetstestbara.
 - **Behörighet explicit i backend.** ASP.NET Core:s behörighetspolicies plus kontroller i koden.
 
-Förslag på grundstruktur (ej beslutat):
+Grundstruktur (etablerad i walking skeleton, 2026-11-26):
 
 ```
+Klassologi.slnx
+global.json          .NET SDK-version och testplattform
+compose.yaml         lokal databas
 src/
   Klassologi.Api/
     Program.cs
-    Data/            anslutning, migreringsskript
-    Features/
-      Classes/
-      Users/
-      Posts/
-    Auth/
+    Data/            anslutning (Db), migreringar (DbUp)
+      Migrations/    numrerade SQL-skript, t.ex. 0001_database_defaults.sql
+    Features/        ett funktionsområde per katalog, t.ex. Status/, senare Classes/, Users/, Posts/
 tests/
   Klassologi.Api.Tests/
+web/                 frontend (Vite, lit-html)
+  src/               per funktion, t.ex. status/
+  e2e/               Playwright
 ```
+
+**Migreringar (beslutat 2026-11-26):** DbUp (`dbup-mysql`). Skripten ligger som inbäddade resurser i `Data/Migrations/`, körs i namnordning när API:t startar och loggas i tabellen `schemaversions`. Ett kört skript ändras aldrig, utan rättas med ett nytt skript.
+
+**Konfiguration:** Anslutningssträngen `ConnectionStrings:Klassologi` ligger aldrig i repot. Lokalt sätts den med `dotnet user-secrets`, i drift med miljövariabel eller en hanterad hemlighet.
 
 ## Frontend
 
@@ -116,6 +123,13 @@ tests/
 - **Känd utgångspunkt.** Varje Newman-körning använder en återställbar testmiljö eller skapar sin egen testdata, t.ex. en egen klass.
 - **Utvärdering.** Om samlingarna blir svåra att granska i git utvärderas textbaserade alternativ (t.ex. Bruno eller `.http`-filer).
 - **Körs lokalt tills vidare (beslutat 2026-11-26).** Testerna körs lokalt innan en pull request öppnas eller uppdateras. De flyttas till en CI-pipeline senare.
+
+**Versioner och miljökrav (2026-11-26):**
+
+- **xUnit v3** körs med Microsoft Testing Platform (`dotnet test --solution Klassologi.slnx`), vilket .NET 10 SDK kräver. Inställningen finns i `global.json`.
+- **Testcontainers** kräver Docker Engine 25 eller senare (Docker API 1.44).
+- **TypeScript 6.0**, inte 7.0, eftersom typescript-eslint ännu inte stöder TypeScript 7.
+- **`Microsoft.AspNetCore.Mvc.Testing` 10.0.x**, i takt med .NET 10 LTS.
 
 ## Databas: MySQL – säkerhetsåtgärder
 
