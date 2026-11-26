@@ -1,5 +1,6 @@
 /** Ionic Core: bara de komponenter som används registreras, så att resten inte följer med i bygget. */
 import { initialize } from '@ionic/core/components';
+import { defineCustomElement as ionAlert } from '@ionic/core/components/ion-alert.js';
 import { defineCustomElement as ionApp } from '@ionic/core/components/ion-app.js';
 import { defineCustomElement as ionButton } from '@ionic/core/components/ion-button.js';
 import { defineCustomElement as ionButtons } from '@ionic/core/components/ion-buttons.js';
@@ -17,6 +18,7 @@ import { defineCustomElement as ionSelect } from '@ionic/core/components/ion-sel
 import { defineCustomElement as ionSelectOption } from '@ionic/core/components/ion-select-option.js';
 import { defineCustomElement as ionSpinner } from '@ionic/core/components/ion-spinner.js';
 import { defineCustomElement as ionText } from '@ionic/core/components/ion-text.js';
+import { defineCustomElement as ionTextarea } from '@ionic/core/components/ion-textarea.js';
 import { defineCustomElement as ionTitle } from '@ionic/core/components/ion-title.js';
 import { defineCustomElement as ionToast } from '@ionic/core/components/ion-toast.js';
 import { defineCustomElement as ionToolbar } from '@ionic/core/components/ion-toolbar.js';
@@ -31,7 +33,7 @@ import '@ionic/core/css/palettes/dark.system.css';
 export function setupIonic(): void {
   initialize();
   for (const define of [
-    ionApp, ionButton, ionButtons, ionContent, ionHeader, ionIcon, ionInput, ionItem, ionLabel, ionList, ionNote,
-    ionSegment, ionSegmentButton, ionSelect, ionSelectOption, ionSpinner, ionText, ionTitle, ionToast, ionToolbar,
+    ionAlert, ionApp, ionButton, ionButtons, ionContent, ionHeader, ionIcon, ionInput, ionItem, ionLabel, ionList, ionNote,
+    ionSegment, ionSegmentButton, ionSelect, ionSelectOption, ionSpinner, ionText, ionTextarea, ionTitle, ionToast, ionToolbar,
   ]) define();
 }

@@ -50,13 +50,15 @@ src/
     Data/            anslutning (Db), migreringar (DbUp)
       Migrations/    numrerade SQL-skript, t.ex. 0001_database_defaults.sql
     Auth/            Identity: lagring, inloggning, engångslänkar, kontoregler
-    Features/        ett funktionsområde per katalog: Status/, Classes/, Invitations/, PasswordResets/, senare Posts/
+    Features/        ett funktionsområde per katalog: Status/, Classes/, Invitations/, PasswordResets/, Posts/
 tests/
   Klassologi.Api.Tests/
 web/                 frontend (Vite, lit-html)
   src/               per funktion, t.ex. status/
   e2e/               Playwright
 ```
+
+**Bakgrundsjobb:** `Features/Posts/PostPurge.cs` gallrar borttagna inlägg efter 90 dagar. Det körs i API:t (`BackgroundService`) vid start och sedan varje timme, och kan köras av flera instanser samtidigt.
 
 **Migreringar (beslutat 2026-11-26):** DbUp (`dbup-mysql`). Skripten ligger som inbäddade resurser i `Data/Migrations/`, körs i namnordning när API:t startar och loggas i tabellen `schemaversions`. Ett kört skript ändras aldrig, utan rättas med ett nytt skript.
 
@@ -73,6 +75,7 @@ web/                 frontend (Vite, lit-html)
 - **Inget `innerHTML`.** Förbjuds med en lint-regel, för att undvika XSS.
 - **API-anrop via en egen klient** (`web/src/api.ts`, beslutat 2026-11-26): tunna, typade funktioner ovanpå `fetch`. Typerna skrivs för hand efter API-kontraktet i [UseCases.md](UseCases.md#api-steg-3a), med OpenAPI-dokumentet som referens. Eftersom typerna inte genereras kan klienten glida isär från API:t. Det fångas av Playwright-testerna, som kör mot det riktiga API:t.
 - **Navigering med en egen, minimal router** över History API:t. Varje vy är en modul som renderar sig själv med lit-html. Ionics egen router används inte, eftersom den förutsätter att varje vy är en egen webbkomponent.
+- **Markdown (beslutat 2026-11-26, steg 4):** `marked` används bara för att dela upp texten i delar. `web/src/markdown.ts` bygger lit-html-mallar av ett begränsat urval, så ingen HTML-sträng skapas och regeln mot `unsafeHTML` gäller fortfarande. Rå HTML visas som text, länkar tillåts bara för `http`, `https` och `mailto`, och bilder visas inte. Vitest-testerna prövar XSS-försök i en DOM (`jsdom`).
 - **Tillgänglighet:** grundläggande nivå ([Q17](Questions.md#q17-krav-på-tillgänglighet)), kontrolleras med axe (`@axe-core/playwright`).
 - **Webben ska fungera fullt ut på egen hand.** Capacitor-skalet lägger bara till mobilfunktioner som push-notiser och notisåtgärder via plugins. Webbkoden ska inte behöva skrivas om.
 
@@ -128,7 +131,7 @@ web/                 frontend (Vite, lit-html)
 |---------|----------------|------------------|
 | xUnit (enhetstester) | Affärsregler isolerat | Roller, behörighetsregler, anonymitet, validering |
 | xUnit + `WebApplicationFactory` + Testcontainers | API:t inifrån, mot riktig MySQL | Klassavgränsning, behörighet per endpoint, felfall, databasbeteende |
-| Vitest | Frontendlogik | Router, API-klientens felhantering, etiketter |
+| Vitest | Frontendlogik | Router, API-klientens felhantering, etiketter, Markdown-rendering inklusive XSS-försök |
 | Playwright + axe | Hela flöden i webbläsaren mot det riktiga API:t | Use-case-flöden från början till slut, kontraktet mot API:t, grundläggande tillgänglighet |
 | Newman (senare) | API:t utifrån som svart låda, mot en körande miljö | Rökprov efter driftsättning |
 

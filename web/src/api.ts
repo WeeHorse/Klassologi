@@ -21,6 +21,16 @@ export type CreatedClass = { id: string; name: string; teacherInvitation: Link }
 export type Member = { userId: string; displayName: string; role: Role; isAdministrator: boolean };
 export type InvitationInfo = { className: string | null; role: Role | null; isAdministrator: boolean };
 export type Accepted = { classId: string | null };
+export type Post = {
+  id: string;
+  title: string;
+  body: string;
+  author: { id: string; displayName: string; role: Role | null };
+  createdAt: string;
+  editedAt: string | null;
+  pinnedAt: string | null;
+  deleted: { at: string; byDisplayName: string; purgeAt: string } | null;
+};
 
 type Fetch = typeof fetch;
 
@@ -82,6 +92,13 @@ export const api = {
   inspectInvitation: (token: string) => request<InvitationInfo>('POST', '/api/invitations/inspect', { token }),
   acceptInvitation: (token: string, account?: { displayName: string; email: string; password: string }) =>
     request<Accepted>('POST', '/api/invitations/accept', { token, ...account }),
+  posts: (classId: string) => request<Post[]>('GET', `/api/classes/${classId}/posts`),
+  publish: (classId: string, title: string, body: string) => request<Post>('POST', `/api/classes/${classId}/posts`, { title, body }),
+  editPost: (classId: string, postId: string, title: string, body: string) =>
+    request<Post>('PUT', `/api/classes/${classId}/posts/${postId}`, { title, body }),
+  deletePost: (classId: string, postId: string) => request<void>('DELETE', `/api/classes/${classId}/posts/${postId}`),
+  pinPost: (classId: string, postId: string, pinned: boolean) =>
+    request<void>('PUT', `/api/classes/${classId}/posts/${postId}/pin`, { pinned }),
   completePasswordReset: (token: string, newPassword: string) =>
     request<void>('POST', '/api/password-resets/complete', { token, newPassword }),
 };

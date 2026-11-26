@@ -124,7 +124,7 @@ Kolumnen *Frågor* anger öppna frågor som måste besvaras innan use caset kan 
 | 2 | `feature/class-membership` | UC-01, UC-03, läsning av klasser och klassavgränsning. Användare finns som tabell men skapas direkt i databasen. | Klart |
 | 3a | `feature/authentication` | Backend för UC-02 (enkel variant), UC-04, UC-05, återställning av lösenord, medlemslista och kommandot för administratörer ([Q2](Questions.md#q2-användarnas-ålder-och-inloggning)) | Klart |
 | 3b | `feature/authentication-ui` | Gränssnitt för steg 3: Logga in, Aktivera konto, Välj nytt lösenord, Mina klasser, Klass | Klart |
-| 4 | `feature/notice-board` | UC-08–10. Beror på Q10 och Q13. | – |
+| 4 | `feature/notice-board` | UC-08–10, fästa inlägg och gallring av borttagna inlägg | Klart |
 | 5 | – | UC-02 (resten), UC-06, UC-07, UC-11, UC-12 | – |
 
 Klasser och medlemskap byggs före inloggningen trots att lager 1 och 2 i listan har motsatt ordning. Klassavgränsningen är systemets viktigaste säkerhetsegenskap och kan testas utan riktig inloggning, eftersom testerna använder ett eget autentiseringsschema.
@@ -359,3 +359,125 @@ Token i engångslänkar skickas alltid i bodyn, aldrig i URL:en. Länkar returne
 - Regeln om minst en lärare gäller fortfarande vid ändringar av roller. En klass kan alltså stå utan lärare tills den första inbjudan har använts, men en befintlig lärare kan aldrig tas bort så att klassen blir utan.
 
 **2. Medlemslista för lärare och administratörer (beslutat 2026-11-26).** Återställning av lösenord och ändring av roller kräver att man kan välja en medlem, men medlemslistan (UC-07) ligger i steg 5. Därför: klassens vy visar en enkel lista med namn och roll för lärare och administratörer, med åtgärderna "Ändra roll" och "Återställ lösenord". "Återställ lösenord" visas bara när aktören får använda den, så lärare ser den inte för lärare eller administratörer (heuristik 5). UC-07 i steg 5 ger sedan alla medlemmar listan med profiler.
+
+### Steg 4: anslagstavlan
+
+**Status:** Beslutat (2026-11-26).
+
+Beslut som förslaget bygger på (2026-11-26):
+
+- **Publicera:** lärare och elevrepresentanter ([Q10](Questions.md#q10-vem-får-publicera-och-kommentera-på-anslagstavlan), [Q13](Questions.md#q13-elevrepresentantens-behörigheter)).
+- **Format:** Markdown, renderat till lit-html utan HTML-strängar.
+- **Borttagning:** inlägget döljs men sparas. Administratörer ser borttagna inlägg, och de raderas permanent efter 90 dagar.
+- **Fästning:** lärare kan fästa inlägg.
+
+#### Gemensamma regler
+
+- **Inlägg:** rubrik (1–150 tecken) och text (1–10 000 tecken) i Markdown. Blanksteg i början och slutet tas bort.
+- **Markdown:** stöd för ett begränsat urval: stycken, radbrytningar, fetstil, kursiv, listor, citat, kod och rubriker. Rubriker i ett inlägg visas som nivå 4–5, under inläggets egen rubrik (nivå 3), så att sidans rubrikstruktur behålls. Ändrat från 3–4 vid implementationen, eftersom inläggets rubrik själv är nivå 3.
+  - Länkar blir klickbara bara för `http`, `https` och `mailto`. Andra länkar, t.ex. `javascript:`, visas som vanlig text.
+  - Bilder visas inte. Bildsyntax blir en länk, eftersom det inte finns fillagring och externa bilder kan användas för spårning.
+  - Rå HTML i texten visas som text.
+  - Ingen HTML-sträng skapas. Regeln mot `unsafeHTML` gäller fortfarande.
+- **Ordning:** fästa inlägg överst, med det senast fästa först. Därefter övriga inlägg med det nyaste först.
+- **Visning:** författarens namn och nuvarande roll i klassen, publiceringstid och "redigerad" om inlägget har ändrats.
+- **Läsa:** alla medlemmar och administratörer. Det betyder att administratörer kan läsa anslagstavlan i alla klasser.
+
+#### UC-08 Publicera inlägg på anslagstavlan
+
+| | |
+|---|---|
+| **Aktör** | Lärare eller elevrepresentant i klassen |
+| **Mål** | Nå hela klassen med information |
+
+**Huvudflöde:**
+
+1. Aktören skriver rubrik och text och kan förhandsgranska hur inlägget kommer att se ut.
+2. Aktören publicerar (201).
+3. Inlägget visas överst bland de icke fästa inläggen.
+
+**Alternativa flöden:**
+
+- **A1. Aktören är elev:** 403. Administratörer som inte är medlemmar i klassen får inte heller publicera, eftersom de inte ingår i klassen.
+- **A2. Ogiltig rubrik eller text:** 400 med fältvisa fel. Inmatningen behålls.
+
+#### UC-09 Läsa anslagstavlan
+
+| | |
+|---|---|
+| **Aktör** | Medlem i klassen, administratör |
+| **Mål** | Hitta aktuell information på ett ställe |
+
+**Huvudflöde:** aktören öppnar klassens vy och ser anslagstavlan enligt de gemensamma reglerna.
+
+**Alternativa flöden:**
+
+- **A1. Inga inlägg:** "Här finns inga inlägg än."
+- **A2. Administratören** ser dessutom borttagna inlägg, tydligt markerade med vem som tog bort dem, när det skedde och när de raderas permanent.
+
+#### UC-10 Redigera och ta bort eget inlägg
+
+| | |
+|---|---|
+| **Aktör** | Inläggets författare |
+| **Mål** | Hålla informationen korrekt |
+
+**Huvudflöde (redigera):**
+
+1. Författaren ändrar rubrik eller text.
+2. Systemet sparar ändringen och markerar inlägget som "redigerat".
+
+Om två personer redigerar samtidigt gäller den senaste ändringen.
+
+**Huvudflöde (ta bort):**
+
+1. Författaren väljer "Ta bort" och bekräftar.
+2. Inlägget döljs för alla utom administratörer.
+
+**Alternativa flöden:**
+
+- **A1. Någon annan än författaren försöker redigera eller ta bort:** 403. Lärare kan inte ta bort andras inlägg, eftersom det hör till moderering (UC-12, steg 5).
+- **A2. Inlägget är redan borttaget:** 404.
+
+**Regler:**
+
+- Författaren får alltid redigera och ta bort sina egna inlägg, även om rollen har ändrats sedan inlägget publicerades.
+- Ett borttaget inlägg kan inte återställas i MVP:n.
+
+#### Fästa inlägg
+
+| | |
+|---|---|
+| **Aktör** | Lärare i klassen |
+| **Mål** | Hålla viktig information överst |
+
+- **Huvudflöde:** läraren fäster eller lossar valfritt inlägg i klassen. Det finns ingen gräns för antalet fästa inlägg.
+- **Alternativt flöde:** andra än lärare i klassen får 403. Det gäller också administratörer som inte är medlemmar.
+
+#### Gallring av borttagna inlägg
+
+Borttagna inlägg raderas permanent 90 dagar efter borttagningen. Ett bakgrundsjobb i API:t kontrollerar varje timme. Det spelar ingen roll om flera instanser av API:t kör jobbet samtidigt.
+
+#### API (steg 4)
+
+| Anrop | Beskrivning | Svar |
+|-------|-------------|------|
+| `GET /api/classes/{id}/posts` | Medlemmar och administratörer. Sorterad enligt reglerna. Borttagna inlägg ingår bara för administratörer. | 200 `[{id, title, body, author: {id, displayName, role}, createdAt, editedAt, pinnedAt, deleted: {at, byDisplayName, purgeAt} \| null}]` |
+| `POST /api/classes/{id}/posts` | `{title, body}`. UC-08. | 201 inlägget |
+| `PUT /api/classes/{id}/posts/{postId}` | `{title, body}`. Bara författaren. | 200 inlägget |
+| `DELETE /api/classes/{id}/posts/{postId}` | Bara författaren. Döljer inlägget. | 204 |
+| `PUT /api/classes/{id}/posts/{postId}/pin` | `{pinned}`. Bara lärare i klassen. | 204 |
+
+Samma regler för 401, 403 och 404 som för klasser ([Q11](Questions.md#q11-svar-när-en-icke-medlem-försöker-nå-en-klass)).
+
+#### Gränssnitt
+
+Klassens vy får avsnittet **Anslagstavla**, som visas för alla medlemmar:
+
+- **För lärare och elevrepresentanter:** formuläret "Nytt inlägg" med rubrik, text, en kort hjälptext om Markdown, "Förhandsgranska" och "Publicera".
+- **Inlägg:** rubrik, metadata och text. Fästa inlägg är märkta "Fäst".
+- **För författaren:** "Redigera" (samma formulär, i inlägget) och "Ta bort", som kräver bekräftelse.
+- **För lärare:** "Fäst" och "Lossa".
+- **För administratören:** borttagna inlägg visas gråade med uppgifter om borttagningen.
+
+**Utanför steg 4:** kommentarer och reaktioner (UC-11), moderering (UC-12), notiser, bilagor och sidindelning. Alla inlägg hämtas på en gång, vilket bör ses över när klasserna har många inlägg.

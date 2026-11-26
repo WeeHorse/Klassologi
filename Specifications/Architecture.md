@@ -45,7 +45,7 @@ flowchart TB
     end
 
     subgraph backend[Backend]
-        api["Klassologi.Api<br/>.NET Minimal API + Identity<br/>Features: Status, Classes,<br/>Invitations, PasswordResets<br/>(Posts planerade)"]
+        api["Klassologi.Api<br/>.NET Minimal API + Identity<br/>Features: Status, Classes,<br/>Invitations, PasswordResets, Posts"]
         rt["SignalR<br/>(förslag, lager 4)"]
     end
 
