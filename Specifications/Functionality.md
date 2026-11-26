@@ -140,13 +140,12 @@ Gränssnittet ska följa Jakob Nielsens tio användbarhetsheuristiker:
 
 ## Tillgänglighet
 
-Gränssnittet ska uppfylla **WCAG 2.2 nivå AA** ([Q17](Questions.md#q17-krav-på-tillgänglighet)), bland annat:
+Gränssnittet ska ha **grundläggande tillgänglighet** ([Q17](Questions.md#q17-krav-på-tillgänglighet)). Det finns ingen uttalad WCAG-nivå. Kraven är:
 
+- att formulärfält och knappar har etiketter
 - tillräcklig kontrast mellan text och bakgrund
-- att allt går att göra med tangentbordet, med synlig fokusmarkering
-- att formulärfält har etiketter och att fel kopplas till rätt fält och läses upp av skärmläsare
-- att texten går att förstora utan att innehåll försvinner.
+- att det går att använda appen med tangentbordet.
 
-**Verifiering:** automatisk kontroll med axe i Playwright för varje vy. Det som inte kan kontrolleras automatiskt, till exempel tangentbordsflöden och skärmläsare, prövas manuellt vid den heuristiska utvärderingen.
+**Verifiering:** automatisk kontroll med axe i Playwright för varje vy, med axe:s regler för WCAG A och AA som verktyg. Ingen manuell prövning med skärmläsare krävs.
 
 **Verifiering av heuristikerna:** Heuristikerna är kvalitativa krav och kan inte verifieras fullt ut med automatiska tester. De verifieras genom heuristisk utvärdering av gränssnittet, åtminstone innan varje lager i [use case-listan](UseCases.md#bruttolista) räknas som klart.

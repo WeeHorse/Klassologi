@@ -207,6 +207,19 @@ public sealed class PasswordResetAndMembersTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Member_list_shows_who_is_administrator()
+    {
+        var (classId, teacher) = await api.CreateClassWithTeacherAsync();
+        var admin = await api.CreateUserAsync("Admin som elev", isAdministrator: true);
+        await api.As(teacher).PutAsJsonAsync($"/api/classes/{classId}/members/{admin}", new { role = "Student" }, Ct);
+
+        var members = await api.As(teacher).GetFromJsonAsync<Member[]>($"/api/classes/{classId}/members", Ct);
+
+        Assert.True(members!.Single(m => m.UserId == admin).IsAdministrator);
+        Assert.False(members!.Single(m => m.UserId == teacher).IsAdministrator);
+    }
+
+    [Fact]
     public async Task Administrator_sees_members()
     {
         var (classId, _) = await api.CreateClassWithTeacherAsync();
@@ -239,5 +252,5 @@ public sealed class PasswordResetAndMembersTests(ApiFixture api)
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    sealed record Member(Guid UserId, string DisplayName, string Role);
+    sealed record Member(Guid UserId, string DisplayName, string Role, bool IsAdministrator);
 }

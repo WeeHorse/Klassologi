@@ -122,8 +122,8 @@ Kolumnen *Frågor* anger öppna frågor som måste besvaras innan use caset kan 
 |------|--------|----------|--------|
 | 1 | `feature/walking-skeleton` | Hela kedjan utan affärsfunktioner: API, migreringar, webbapp och alla testverktyg | Klart |
 | 2 | `feature/class-membership` | UC-01, UC-03, läsning av klasser och klassavgränsning. Användare finns som tabell men skapas direkt i databasen. | Klart |
-| 3a | `feature/authentication` | Backend för UC-02 (enkel variant), UC-04, UC-05, återställning av lösenord, medlemslista och kommandot för administratörer ([Q2](Questions.md#q2-användarnas-ålder-och-inloggning)) | Klart (PR) |
-| 3b | `feature/authentication-ui` | Gränssnitt för steg 3: Logga in, Aktivera konto, Välj nytt lösenord, Mina klasser, Klass | Pågår |
+| 3a | `feature/authentication` | Backend för UC-02 (enkel variant), UC-04, UC-05, återställning av lösenord, medlemslista och kommandot för administratörer ([Q2](Questions.md#q2-användarnas-ålder-och-inloggning)) | Klart |
+| 3b | `feature/authentication-ui` | Gränssnitt för steg 3: Logga in, Aktivera konto, Välj nytt lösenord, Mina klasser, Klass | Klart |
 | 4 | `feature/notice-board` | UC-08–10. Beror på Q10 och Q13. | – |
 | 5 | – | UC-02 (resten), UC-06, UC-07, UC-11, UC-12 | – |
 
@@ -344,7 +344,7 @@ Token i engångslänkar skickas alltid i bodyn, aldrig i URL:en. Länkar returne
 | `GET /api/auth/me` | Ja | `{id, displayName, email, isAdministrator}` | 200 |
 | `POST /api/classes` | Ja | `{name}`. UC-01. | 201 `{id, name, teacherInvitation: {url, expiresAt}}` |
 | `POST /api/classes/{id}/invitations` | Ja | `{role}`. UC-02. | 201 `{url, expiresAt}` |
-| `GET /api/classes/{id}/members` | Ja | Lärare och administratörer. Sorterad på namn. | 200 `[{userId, displayName, role}]` |
+| `GET /api/classes/{id}/members` | Ja | Lärare och administratörer. Sorterad på namn. | 200 `[{userId, displayName, role, isAdministrator}]` |
 | `POST /api/classes/{id}/members/{userId}/password-reset` | Ja | Lärare (inte för lärare eller administratörer) och administratörer | 201 `{url, expiresAt}` |
 | `POST /api/invitations/inspect` | Nej | `{token}` | 200 `{className, role, isAdministrator}`. 404 om länken inte gäller. |
 | `POST /api/invitations/accept` | Valfri | `{token}` om inloggad, annars `{token, displayName, email, password}`. UC-04. | 201 (nytt konto, inloggad) eller 200 (befintligt konto). 404 om länken inte gäller, 409 med `code`: `email_taken`, 400 vid ogiltiga fält. |
@@ -358,4 +358,4 @@ Token i engångslänkar skickas alltid i bodyn, aldrig i URL:en. Länkar returne
 - Klassen skapas utan medlemmar, och systemet visar direkt en inbjudningslänk med rollen lärare.
 - Regeln om minst en lärare gäller fortfarande vid ändringar av roller. En klass kan alltså stå utan lärare tills den första inbjudan har använts, men en befintlig lärare kan aldrig tas bort så att klassen blir utan.
 
-**2. Medlemslista för lärare och administratörer (beslutat 2026-11-26).** Återställning av lösenord och ändring av roller kräver att man kan välja en medlem, men medlemslistan (UC-07) ligger i steg 5. Därför: klassens vy visar en enkel lista med namn och roll för lärare och administratörer, med åtgärderna "Ändra roll" och "Återställ lösenord". UC-07 i steg 5 ger sedan alla medlemmar listan med profiler.
+**2. Medlemslista för lärare och administratörer (beslutat 2026-11-26).** Återställning av lösenord och ändring av roller kräver att man kan välja en medlem, men medlemslistan (UC-07) ligger i steg 5. Därför: klassens vy visar en enkel lista med namn och roll för lärare och administratörer, med åtgärderna "Ändra roll" och "Återställ lösenord". "Återställ lösenord" visas bara när aktören får använda den, så lärare ser den inte för lärare eller administratörer (heuristik 5). UC-07 i steg 5 ger sedan alla medlemmar listan med profiler.

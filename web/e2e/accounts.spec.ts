@@ -121,6 +121,23 @@ test('läraren ser medlemmarna och återställer elevens lösenord', async ({ br
   await expect(student.getByRole('heading', { name: 'Mina klasser' })).toBeVisible();
 });
 
+test('inloggad användare går med i en klass, och läraren kan inte återställa en administratörs lösenord', async ({ browser }) => {
+  // UC-04 A2: administratören är redan inloggad och går med i klassen som elev.
+  await teacher.goto(classPath);
+  await teacher.getByRole('button', { name: 'Skapa inbjudningslänk' }).click();
+  const link = await sharedLink(teacher);
+  const admin = await (await browser.newContext({ storageState: adminState })).newPage();
+  await admin.goto(link);
+  await expect(admin.getByText('Du är inloggad som Ada Admin.')).toBeVisible();
+  await expectAccessible(admin);
+  await admin.getByRole('button', { name: 'Gå med i klassen' }).click();
+  await expect(admin.getByText('Din roll: Elev')).toBeVisible();
+
+  await teacher.goto(classPath);
+  await expect(teacher.getByRole('button', { name: 'Ada Admin, Elev' })).toBeVisible();
+  await expect(teacher.getByRole('button', { name: 'Återställ lösenord för Ada Admin' })).toHaveCount(0);
+});
+
 test('läraren ändrar elevens roll', async () => {
   await teacher.goto(classPath);
   // Med tangentbordet (WCAG 2.1.1): öppna rollväljaren och välj ny roll.
