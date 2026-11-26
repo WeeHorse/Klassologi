@@ -7,6 +7,8 @@ const webPort = 5174;
 
 export default defineConfig({
   testDir: 'e2e',
+  // I CI sparas även en HTML-rapport, som laddas upp när något fallerar.
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: { baseURL: `http://localhost:${webPort}` },
   projects: [
     { name: 'setup', testMatch: /.*\.setup\.ts/ },

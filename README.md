@@ -79,6 +79,9 @@ npm run dev
 
 ## Tester
 
+Alla tester nedan körs automatiskt vid varje pull request mot `main` (GitHub Actions, `.github/workflows/tests.yml`).
+
+
 | Vad | Kommando | Kräver |
 |-----|----------|--------|
 | Backend (xUnit + Testcontainers) | `dotnet test --solution Klassologi.slnx` | Docker. Startar en egen databas och rör inte utvecklingsdatabasen. |
