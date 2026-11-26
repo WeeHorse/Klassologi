@@ -106,3 +106,12 @@ Får bara lärare publicera på anslagstavlan, eller även elevrepresentanter oc
 Ska API:t svara 403 (åtkomst nekad) eller 404 (finns inte) när en användare försöker nå data i en klass som användaren inte tillhör?
 
 **Varför det spelar roll:** 404 avslöjar inte att klassen finns, men gör felsökning svårare. Krävs för att detaljera UC-09 och övriga klassbundna use cases.
+
+## Q12. Collation för svensk text
+
+**Status:** Öppen
+**Berör:** Datamodell, [Technology](Technology.md#databas-mysql--säkerhetsåtgärder)
+
+Servern använder MySQL:s standard `utf8mb4_0900_ai_ci`, som behandlar å och ä som a och ö som o vid jämförelse och sortering. Ska kolumner med namn och annan svensk text i stället använda `utf8mb4_sv_0900_ai_ci`?
+
+**Varför det spelar roll:** Påverkar sökning, sortering av klasslistor och unikhet. Med standardcollation räknas till exempel "Åsa" och "Asa" som samma värde. Krävs när de första tabellerna skapas.
