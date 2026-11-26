@@ -24,12 +24,14 @@ Kan användarna vara minderåriga? Ska inloggning ske via skolans befintliga ide
 
 ## Q3. Omfattning – en klass, flera klasser eller flera skolor?
 
-**Status:** Öppen
+**Status:** Besvarad (2026-11-26)
 **Berör:** Datamodell, Användare och roller
 
 Ska en installation hantera en klass, flera klasser eller flera skolor?
 
 **Varför det spelar roll:** Avgör om datamodellen behöver stödja flera separata organisationer (multi-tenancy) och hur behörigheter avgränsas.
+
+**Beslut:** Flera klasser i samma installation, utan skolnivå. En användare kan vara medlem i flera klasser. En skolnivå kan läggas till senare genom att klasser kopplas till en skola. Se [UseCases.md](UseCases.md#detaljerade-use-cases).
 
 ## Q4. Närvarokontroll – hur verifieras platsen?
 
@@ -42,12 +44,14 @@ Hur ska vi kontrollera att eleven befinner sig på skolan vid incheckning (t.ex.
 
 ## Q5. Roller och behörigheter
 
-**Status:** Öppen
+**Status:** Besvarad (2026-11-26)
 **Berör:** Användare, profiler och roller
 
 Vilka behörigheter har en elevrepresentant utöver en vanlig elev? Vem skapar klasser och tilldelar roller? Finns en administratörsroll?
 
 **Varför det spelar roll:** Grunden för behörighetsmodellen.
+
+**Beslut:** Roller gäller per klass: elev, lärare och elevrepresentant. Administratör är en egenskap hos användaren. Administratören skapar klasser och utser den första läraren, och lärare tilldelar roller i sin egen klass. En klass har alltid minst en lärare. Elevrepresentantens extra behörigheter är inte avgjorda, se [Q13](#q13-elevrepresentantens-behörigheter).
 
 ## Q6. Externa parter
 
@@ -71,14 +75,14 @@ Räcker en responsiv webbapplikation eller PWA initialt, eller krävs en mobilap
 
 ## Q8. Prioritering och omfattning av första versionen
 
-**Status:** Öppen
+**Status:** Besvarad (2026-11-26)
 **Berör:** Samtliga funktionsområden
 
 Vilka funktioner ska ingå i första versionen?
 
-**Förslag (ej beslutat):** Lager 1–3 i [bruttolistan](UseCases.md#bruttolista): plattform, användare och poster (anslagstavla). Kommunikation, grupper, material och kalender följer därefter.
-
 **Varför det spelar roll:** Krävs för att prioritera och detaljera use cases.
+
+**Beslut:** Lager 1–3 i [bruttolistan](UseCases.md#bruttolista) utgör MVP:n: plattform, användare och poster (anslagstavla). Byggordningen följer risk och beroenden, se [Byggordning för MVP](UseCases.md#byggordning-för-mvp).
 
 ## Q9. Kategorisering av elever – vad avses?
 
@@ -100,18 +104,31 @@ Får bara lärare publicera på anslagstavlan, eller även elevrepresentanter oc
 
 ## Q11. Svar när en icke-medlem försöker nå en klass
 
-**Status:** Öppen
+**Status:** Besvarad (2026-11-26)
 **Berör:** Integritet och behörighet, [Architecture](Architecture.md#klassbunden-förfrågan)
 
 Ska API:t svara 403 (åtkomst nekad) eller 404 (finns inte) när en användare försöker nå data i en klass som användaren inte tillhör?
 
 **Varför det spelar roll:** 404 avslöjar inte att klassen finns, men gör felsökning svårare. Krävs för att detaljera UC-09 och övriga klassbundna use cases.
 
+**Beslut:** 403 när användaren inte är medlem i klassen (och inte är administratör), 404 bara när klassen inte finns. Inom klassen ger saknad behörighet 403. Se [UseCases.md](UseCases.md#detaljerade-use-cases).
+
 ## Q12. Collation för svensk text
 
-**Status:** Öppen
+**Status:** Besvarad (2026-11-26)
 **Berör:** Datamodell, [Technology](Technology.md#databas-mysql--säkerhetsåtgärder)
 
 Servern använder MySQL:s standard `utf8mb4_0900_ai_ci`, som behandlar å och ä som a och ö som o vid jämförelse och sortering. Ska kolumner med namn och annan svensk text i stället använda `utf8mb4_sv_0900_ai_ci`?
 
 **Varför det spelar roll:** Påverkar sökning, sortering av klasslistor och unikhet. Med standardcollation räknas till exempel "Åsa" och "Asa" som samma värde. Krävs när de första tabellerna skapas.
+
+**Beslut:** Svensk collation, `utf8mb4_sv_0900_ai_ci`, som databasens standard. Id-kolumner och andra tekniska värden använder `ascii_bin`. Se [Technology.md](Technology.md#databas-mysql--säkerhetsåtgärder).
+
+## Q13. Elevrepresentantens behörigheter
+
+**Status:** Öppen
+**Berör:** Användare, profiler och roller, Kommunikation
+
+Vad får en elevrepresentant göra utöver en elev? Till exempel publicera på anslagstavlan ([Q10](#q10-vem-får-publicera-och-kommentera-på-anslagstavlan)), moderera eller ta emot frågor från klassen (UC-17).
+
+**Varför det spelar roll:** Rollen finns i datamodellen men har ännu inga egna rättigheter. Krävs för att detaljera UC-08 och UC-17.
